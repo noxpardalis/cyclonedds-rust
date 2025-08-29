@@ -1,0 +1,12 @@
+[package]
+name = "cyclonedds"
+authors.workspace = true
+description.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+cyclonedds-sys = { path = "../cyclonedds-sys" }
