@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Rust
+/target
+
+# Nix
+result
+.direnv/
+.envrc
