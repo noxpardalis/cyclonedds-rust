@@ -10,3 +10,8 @@ version.workspace = true
 
 [dependencies]
 cyclonedds-sys = { path = "../cyclonedds-sys" }
+serde = "1.0.219"
+
+[dev-dependencies]
+serde = { version = "1.0.219", features = ["derive"] }
+uuid = { version = "1.18.0", features = ["v4"] }
