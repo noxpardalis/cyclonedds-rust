@@ -9,3 +9,6 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+
+[build-dependencies]
+bindgen = "0.72.1"
