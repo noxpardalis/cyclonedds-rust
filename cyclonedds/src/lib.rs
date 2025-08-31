@@ -1,6 +1,7 @@
 #![deny(unsafe_code)]
 
 pub mod cdr_bounds;
+mod domain;
 mod duration;
 pub mod entity;
 mod error;
@@ -10,6 +11,7 @@ pub mod status;
 mod time;
 mod topicable;
 
+pub use domain::Domain;
 pub use duration::Duration;
 pub use error::{Error, Result};
 pub use state::State;
