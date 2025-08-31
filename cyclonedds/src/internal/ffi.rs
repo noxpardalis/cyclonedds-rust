@@ -138,5 +138,11 @@ pub fn dds_set_status_mask(entity: cyclonedds_sys::dds_entity_t, mask: u32) -> R
     Ok(())
 }
 
+/// Delete an entity.
+pub fn dds_delete(entity: cyclonedds_sys::dds_entity_t) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_delete(entity) }.into_error()?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests;

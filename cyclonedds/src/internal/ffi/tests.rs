@@ -33,3 +33,10 @@ fn test_ddsi_serdata_new_ref_unref() {
     assert_eq!(serdata.refc.v, 1);
     ddsi_sertype_fini(&mut sertype);
 }
+
+#[test]
+fn test_dds_delete_on_non_existent_entity() {
+    let entity = 101;
+    let result = dds_delete(entity);
+    assert!(result.is_err());
+}
