@@ -8,6 +8,9 @@
 pub mod serdata_ops;
 pub mod sertype_ops;
 
+use crate::Result;
+use crate::error::IntoError;
+
 /// Create a new serdata. This is primarily used by the
 /// [`Serdata`][`crate::internal::serdata::Serdata`] wrapper.
 pub fn ddsi_serdata_new(
@@ -49,4 +52,10 @@ pub fn ddsi_sertype_fini(sertype: &mut cyclonedds_sys::ddsi_sertype) {
     unsafe {
         cyclonedds_sys::ddsi_sertype_fini(sertype);
     }
+}
+
+/// Delete an entity.
+pub fn dds_delete(entity: cyclonedds_sys::dds_entity_t) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_delete(entity) }.into_error()?;
+    Ok(())
 }
