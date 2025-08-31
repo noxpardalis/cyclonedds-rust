@@ -94,6 +94,7 @@ dependencies = [
 name = "cyclonedds"
 version = "0.11.0"
 dependencies = [
+ "bitflags",
  "byteorder",
  "cdr-encoding",
  "cyclonedds-sys",

@@ -1,6 +1,8 @@
 mod error;
+mod status;
 
 pub use error::{Error, Result};
+pub use status::Status;
 
 #[cfg(feature = "internal")]
 pub mod internal;
