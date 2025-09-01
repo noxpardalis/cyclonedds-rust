@@ -1,9 +1,11 @@
 mod domain;
 mod error;
-mod status;
+pub mod state;
+pub mod status;
 
 pub use domain::Domain;
 pub use error::{Error, Result};
+pub use state::State;
 pub use status::Status;
 
 #[cfg(feature = "internal")]
