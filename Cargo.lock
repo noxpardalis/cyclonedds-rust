@@ -79,6 +79,7 @@ dependencies = [
 name = "cyclonedds"
 version = "0.0.1"
 dependencies = [
+ "bitflags",
  "byteorder",
  "cyclonedds-sys",
  "serde",
