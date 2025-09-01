@@ -3,11 +3,13 @@
 pub mod cdr_bounds;
 mod duration;
 mod error;
+pub mod state;
 mod time;
 mod topicable;
 
 pub use duration::Duration;
 pub use error::{Error, Result};
+pub use state::State;
 pub use time::Time;
 pub use topicable::Topicable;
 
