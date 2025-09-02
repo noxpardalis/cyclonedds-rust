@@ -1,9 +1,11 @@
 #![deny(unsafe_code)]
 
 pub mod cdr_bounds;
+mod duration;
 mod error;
 mod topicable;
 
+pub use duration::Duration;
 pub use error::{Error, Result};
 pub use topicable::Topicable;
 
