@@ -318,5 +318,24 @@ pub fn dds_set_status_mask(entity: cyclonedds_sys::dds_entity_t, mask: u32) -> R
     Ok(())
 }
 
+/// Create a participant within a domain. This is primarily used by the
+/// [`Participant`][`crate::Participant`] wrapper.
+pub fn dds_create_participant(
+    domain: cyclonedds_sys::dds_domainid_t,
+    qos: Option<&cyclonedds_sys::dds_qos_t>,
+    listener: Option<&cyclonedds_sys::dds_listener_t>,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe {
+        cyclonedds_sys::dds_create_participant(
+            domain,
+            qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
+            listener
+                .map(|listener| listener as *const _)
+                .unwrap_or(std::ptr::null()),
+        )
+    }
+    .into_error()
+}
+
 #[cfg(test)]
 mod tests;
