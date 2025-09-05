@@ -363,5 +363,43 @@ pub fn dds_create_topic(
     .into_error()
 }
 
+/// Create a publisher under a participant. This is primarily used by the
+/// [`Publisher`][`crate::Publisher`] wrapper.
+pub fn dds_create_publisher(
+    participant: cyclonedds_sys::dds_entity_t,
+    qos: Option<&cyclonedds_sys::dds_qos_t>,
+    listener: Option<&cyclonedds_sys::dds_listener_t>,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe {
+        cyclonedds_sys::dds_create_publisher(
+            participant,
+            qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
+            listener
+                .map(|listener| listener as *const _)
+                .unwrap_or(std::ptr::null()),
+        )
+    }
+    .into_error()
+}
+
+/// Create a subscriber under a participant. This is primarily used by the
+/// [`Subscriber`][`crate::Subscriber`] wrapper.
+pub fn dds_create_subscriber(
+    participant: cyclonedds_sys::dds_entity_t,
+    qos: Option<&cyclonedds_sys::dds_qos_t>,
+    listener: Option<&cyclonedds_sys::dds_listener_t>,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe {
+        cyclonedds_sys::dds_create_subscriber(
+            participant,
+            qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
+            listener
+                .map(|listener| listener as *const _)
+                .unwrap_or(std::ptr::null()),
+        )
+    }
+    .into_error()
+}
+
 #[cfg(test)]
 mod tests;
