@@ -7,6 +7,7 @@ pub mod qos;
 pub mod state;
 pub mod status;
 mod time;
+mod topic;
 
 pub use domain::Domain;
 pub use duration::Duration;
@@ -16,6 +17,7 @@ pub use qos::QoS;
 pub use state::State;
 pub use status::Status;
 pub use time::Time;
+pub use topic::Topic;
 
 #[cfg(feature = "internal")]
 pub mod internal;
