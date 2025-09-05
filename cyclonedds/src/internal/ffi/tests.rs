@@ -29,7 +29,8 @@ fn test_ddsi_serdata_new_ref_unref() {
         c"data",
         &cyclonedds_sys::ddsi_sertype_ops {
             free: Some(sertype_free_mock),
-            ..crate::internal::sertype::Sertype::<crate::tests::topic::Data>::SERTYPE_OPS},
+            ..crate::internal::sertype::Sertype::<crate::tests::topic::Data>::SERTYPE_OPS
+        },
         &crate::internal::sertype::Sertype::<crate::tests::topic::Data>::SERDATA_OPS,
         false,
     );

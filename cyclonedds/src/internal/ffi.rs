@@ -422,5 +422,70 @@ pub fn dds_create_topic(
     .into_error()
 }
 
+/// Create a publisher under a participant. This is primarily used by the
+/// [`Publisher`][`crate::Publisher`] wrapper.
+pub fn dds_create_publisher(
+    participant: cyclonedds_sys::dds_entity_t,
+    qos: Option<&cyclonedds_sys::dds_qos_t>,
+    listener: Option<&cyclonedds_sys::dds_listener_t>,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe {
+        cyclonedds_sys::dds_create_publisher(
+            participant,
+            qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
+            listener
+                .map(|listener| listener as *const _)
+                .unwrap_or(std::ptr::null()),
+        )
+    }
+    .into_error()
+}
+
+///
+pub fn dds_suspend(publisher: cyclonedds_sys::dds_entity_t) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_suspend(publisher) }.into_error()?;
+    Ok(())
+}
+
+///
+pub fn dds_resume(publisher: cyclonedds_sys::dds_entity_t) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_resume(publisher) }.into_error()?;
+    Ok(())
+}
+
+///
+pub fn dds_wait_for_acks(
+    publisher_or_writer: cyclonedds_sys::dds_entity_t,
+    timeout: cyclonedds_sys::dds_duration_t,
+) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_wait_for_acks(publisher_or_writer, timeout) }.into_error()?;
+    Ok(())
+}
+
+/// Create a subscriber under a participant. This is primarily used by the
+/// [`Subscriber`][`crate::Subscriber`] wrapper.
+pub fn dds_create_subscriber(
+    participant: cyclonedds_sys::dds_entity_t,
+    qos: Option<&cyclonedds_sys::dds_qos_t>,
+    listener: Option<&cyclonedds_sys::dds_listener_t>,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe {
+        cyclonedds_sys::dds_create_subscriber(
+            participant,
+            qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
+            listener
+                .map(|listener| listener as *const _)
+                .unwrap_or(std::ptr::null()),
+        )
+    }
+    .into_error()
+}
+
+///
+pub fn dds_notify_readers(subscriber: cyclonedds_sys::dds_entity_t) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_notify_readers(subscriber) }.into_error()?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests;
