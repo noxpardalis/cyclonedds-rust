@@ -11,6 +11,7 @@ pub mod sample;
 pub mod state;
 pub mod status;
 mod time;
+mod topic;
 mod topicable;
 
 pub use domain::Domain;
@@ -21,6 +22,7 @@ pub use qos::QoS;
 pub use state::State;
 pub use status::Status;
 pub use time::Time;
+pub use topic::Topic;
 pub use topicable::Topicable;
 
 #[cfg(feature = "internal")]
