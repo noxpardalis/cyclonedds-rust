@@ -396,5 +396,31 @@ pub fn dds_create_participant(
     .into_error()
 }
 
+/// Create a topic under a participant. This is primarily used by the
+/// [`Topic`][`crate::Topic`] wrapper.
+pub fn dds_create_topic(
+    participant: cyclonedds_sys::dds_entity_t,
+    name: &std::ffi::CStr,
+    sertype: &mut &mut cyclonedds_sys::ddsi_sertype,
+    qos: Option<&cyclonedds_sys::dds_qos_t>,
+    listener: Option<&cyclonedds_sys::dds_listener_t>,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    let sedp_plist = std::ptr::null();
+
+    unsafe {
+        cyclonedds_sys::dds_create_topic_sertype(
+            participant,
+            name.as_ptr(),
+            sertype as *mut &mut _ as *mut *mut _,
+            qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
+            listener
+                .map(|listener| listener as *const _)
+                .unwrap_or(std::ptr::null()),
+            sedp_plist,
+        )
+    }
+    .into_error()
+}
+
 #[cfg(test)]
 mod tests;
