@@ -5,11 +5,13 @@ mod error;
 mod participant;
 mod publisher;
 pub mod qos;
+mod reader;
 pub mod state;
 pub mod status;
 mod subscriber;
 mod time;
 mod topic;
+mod writer;
 
 pub use domain::Domain;
 pub use duration::Duration;
@@ -18,12 +20,14 @@ pub use participant::Participant;
 pub use publisher::ParticipantOrPublisher;
 pub use publisher::Publisher;
 pub use qos::QoS;
+pub use reader::Reader;
 pub use state::State;
 pub use status::Status;
 pub use subscriber::ParticipantOrSubscriber;
 pub use subscriber::Subscriber;
 pub use time::Time;
 pub use topic::Topic;
+pub use writer::Writer;
 
 #[cfg(feature = "internal")]
 pub mod internal;
