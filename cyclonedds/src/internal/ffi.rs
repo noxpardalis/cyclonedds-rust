@@ -463,15 +463,16 @@ pub fn dds_write_with_timestamp<T>(
 
 unsafe extern "C" fn dds_read_with_collector_callback<T>(
     arg: *mut std::ffi::c_void,
-    _info: *const cyclonedds_sys::dds_sample_info_t,
+    info: *const cyclonedds_sys::dds_sample_info_t,
     sertype: *const cyclonedds_sys::ddsi_sertype,
     serdata: *mut cyclonedds_sys::ddsi_serdata,
 ) -> cyclonedds_sys::dds_return_t
 where
     T: std::clone::Clone,
 {
-    let buffer = unsafe { &mut *(arg as *mut Vec<T>) };
+    let buffer = unsafe { &mut *(arg as *mut Vec<crate::sample::Sample<T>>) };
 
+    let info = unsafe { &*info };
     let mut _sertype = std::mem::ManuallyDrop::new(unsafe {
         Box::from_raw(sertype as *mut crate::internal::sertype::Sertype<T>)
     });
@@ -480,7 +481,10 @@ where
     });
 
     if let Some(sample) = serdata.sample() {
-        buffer.push(sample.clone());
+        let sample = sample.clone();
+        let info = info.into();
+
+        buffer.push(crate::sample::Sample { sample, info });
         0
     } else {
         cyclonedds_sys::DDS_RETCODE_PRECONDITION_NOT_MET
@@ -497,11 +501,11 @@ enum ReadOperation {
 fn dds_read_take_peek<T>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
     operation: ReadOperation,
-) -> Result<Vec<T>>
+) -> Result<Vec<crate::sample::Sample<T>>>
 where
     T: std::clone::Clone,
 {
-    let mut buf: Vec<T> = Vec::new();
+    let mut samples = Vec::new();
 
     let read_dispatch = match operation {
         ReadOperation::Read => cyclonedds_sys::dds_read_with_collector,
@@ -519,18 +523,20 @@ where
             handle,
             mask,
             Some(dds_read_with_collector_callback::<T>),
-            &mut buf as *mut Vec<_> as *mut std::ffi::c_void,
+            &mut samples as *mut Vec<_> as *mut std::ffi::c_void,
         )
     }
     .into_error()? as usize;
 
-    assert_eq!(len, buf.len());
+    assert_eq!(len, samples.len());
 
-    Ok(buf)
+    Ok(samples)
 }
 
 ///
-pub fn dds_take<T>(reader_or_condition: cyclonedds_sys::dds_entity_t) -> Result<Vec<T>>
+pub fn dds_take<T>(
+    reader_or_condition: cyclonedds_sys::dds_entity_t,
+) -> Result<Vec<crate::sample::Sample<T>>>
 where
     T: std::clone::Clone,
 {
@@ -538,7 +544,9 @@ where
 }
 
 ///
-pub fn dds_read<T>(reader_or_condition: cyclonedds_sys::dds_entity_t) -> Result<Vec<T>>
+pub fn dds_read<T>(
+    reader_or_condition: cyclonedds_sys::dds_entity_t,
+) -> Result<Vec<crate::sample::Sample<T>>>
 where
     T: std::clone::Clone,
 {
@@ -546,7 +554,9 @@ where
 }
 
 ///
-pub fn dds_peek<T>(reader_or_condition: cyclonedds_sys::dds_entity_t) -> Result<Vec<T>>
+pub fn dds_peek<T>(
+    reader_or_condition: cyclonedds_sys::dds_entity_t,
+) -> Result<Vec<crate::sample::Sample<T>>>
 where
     T: std::clone::Clone,
 {

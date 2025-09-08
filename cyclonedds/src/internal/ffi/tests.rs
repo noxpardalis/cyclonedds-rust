@@ -14,7 +14,7 @@ fn test_dds_read_with_collector_on_empty_sample() {
     let mut serdata =
         crate::internal::serdata::Serdata::new(&sertype, crate::internal::serdata::Kind::Empty);
 
-    let mut vec: Vec<crate::tests::topic::Data> = Vec::new();
+    let mut vec: Vec<crate::sample::Sample<crate::tests::topic::Data>> = Vec::new();
     let arg = &mut vec as *mut Vec<_> as *mut std::ffi::c_void;
     let mut info = cyclonedds_sys::dds_sample_info_t::default();
 
