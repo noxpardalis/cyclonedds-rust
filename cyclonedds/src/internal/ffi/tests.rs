@@ -53,3 +53,9 @@ fn test_dds_delete_on_non_existent_entity() {
     let result = dds_delete(entity);
     assert!(result.is_err());
 }
+
+#[test]
+fn test_dds_peek_read_take_on_invalid_entity() {
+    let result = dds_peek_read_take::<crate::tests::topic::Data, read_operation::Peek>(0);
+    assert!(result.is_err());
+}
