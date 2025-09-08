@@ -6,6 +6,7 @@ mod participant;
 mod publisher;
 pub mod qos;
 mod reader;
+pub mod sample;
 pub mod state;
 pub mod status;
 mod subscriber;

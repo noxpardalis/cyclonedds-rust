@@ -22,8 +22,8 @@ fn read_write() -> dds::Result<()> {
     let samples = reader.take()?;
 
     assert_eq!(samples.len(), 2);
-    assert_eq!(samples[0], sample);
-    assert_eq!(samples[1], sample);
+    assert_eq!(*samples[0], sample);
+    assert_eq!(*samples[1], sample);
 
     let sample_01 = common::topic::Data::default();
     let sample_02 = common::topic::Data {
@@ -36,8 +36,8 @@ fn read_write() -> dds::Result<()> {
     let samples = reader.read()?;
 
     assert_eq!(samples.len(), 2);
-    assert_eq!(samples[0], sample_01);
-    assert_eq!(samples[1], sample_02);
+    assert_eq!(*samples[0], sample_01);
+    assert_eq!(*samples[1], sample_02);
 
     let sample_03 = common::topic::Data {
         x: 101,
@@ -48,9 +48,9 @@ fn read_write() -> dds::Result<()> {
     let samples = reader.take()?;
 
     assert_eq!(samples.len(), 3);
-    assert_eq!(samples[0], sample_01);
-    assert_eq!(samples[1], sample_02);
-    assert_eq!(samples[2], sample_03);
+    assert_eq!(*samples[0], sample_01);
+    assert_eq!(*samples[1], sample_02);
+    assert_eq!(*samples[2], sample_03);
 
     let samples = reader.read()?;
     assert_eq!(samples.len(), 0);

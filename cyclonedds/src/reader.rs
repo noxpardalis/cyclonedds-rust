@@ -47,7 +47,7 @@ impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T> {
     }
 
     ///
-    pub fn take(&self) -> Result<Vec<T>>
+    pub fn take(&self) -> Result<Vec<crate::sample::Sample<T>>>
     where
         T: std::clone::Clone,
     {
@@ -55,7 +55,7 @@ impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T> {
     }
 
     ///
-    pub fn read(&self) -> Result<Vec<T>>
+    pub fn read(&self) -> Result<Vec<crate::sample::Sample<T>>>
     where
         T: std::clone::Clone,
     {
@@ -63,7 +63,7 @@ impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T> {
     }
 
     ///
-    pub fn peek(&self) -> Result<Vec<T>>
+    pub fn peek(&self) -> Result<Vec<crate::sample::Sample<T>>>
     where
         T: std::clone::Clone,
     {
