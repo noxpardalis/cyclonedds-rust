@@ -87,6 +87,8 @@ impl_entity!(crate::Participant<'_>);
 impl_entity!(crate::Topic<'_, '_, T> where T);
 impl_entity!(crate::Publisher<'_, '_>);
 impl_entity!(crate::Subscriber<'_, '_>);
+impl_entity!(crate::Reader<'_, '_, '_, T> where T);
+impl_entity!(crate::Writer<'_, '_, '_, T> where T);
 
 #[cfg(test)]
 mod tests {
@@ -102,11 +104,15 @@ mod tests {
             .unwrap();
         let publisher = crate::Publisher::new(&participant, None).unwrap();
         let subscriber = crate::Subscriber::new(&participant, None).unwrap();
+        let reader = crate::Reader::new(&participant, &topic, None).unwrap();
+        let writer = crate::Writer::new(&participant, &topic, None).unwrap();
 
         assert_eq!(participant.id().inner, participant.inner);
         assert_eq!(topic.id().inner, topic.inner);
         assert_eq!(publisher.id().inner, publisher.inner);
         assert_eq!(subscriber.id().inner, subscriber.inner);
+        assert_eq!(reader.id().inner, reader.inner);
+        assert_eq!(writer.id().inner, writer.inner);
     }
 
     #[test]
@@ -166,6 +172,34 @@ mod tests {
             .unwrap();
         assert!(status.is_empty());
         let status = participant
+            .take_status(Some(crate::Status::InconsistentTopic))
+            .unwrap();
+        assert!(status.is_empty());
+    }
+
+    #[test]
+    fn test_entity_methods_on_reader() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain, None).unwrap();
+        let topic = crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name, None)
+            .unwrap();
+        let reader = crate::Reader::new(&participant, &topic, None).unwrap();
+
+        let result = reader.instance_handle();
+        assert!(result.is_ok());
+        let status_changes = reader.status_changes().unwrap();
+        assert!(status_changes.is_empty());
+        let result = reader.set_status_mask(crate::Status::InconsistentTopic);
+        assert!(result.is_ok());
+        let mask = reader.status_mask().unwrap();
+        assert_eq!(mask, crate::Status::InconsistentTopic);
+        let status = reader
+            .read_status(Some(crate::Status::InconsistentTopic))
+            .unwrap();
+        assert!(status.is_empty());
+        let status = reader
             .take_status(Some(crate::Status::InconsistentTopic))
             .unwrap();
         assert!(status.is_empty());
