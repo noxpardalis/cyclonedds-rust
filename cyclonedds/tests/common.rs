@@ -1,8 +1,11 @@
 pub mod domain {
     static UNIQUE_DOMAIN: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    const MAX_DOMAIN_BOUNDS: u32 = 235;
 
     pub fn unique_id() -> u32 {
-        UNIQUE_DOMAIN.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        let counter = UNIQUE_DOMAIN.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let result = (counter + std::process::id()) % MAX_DOMAIN_BOUNDS;
+        result
     }
 }
 
