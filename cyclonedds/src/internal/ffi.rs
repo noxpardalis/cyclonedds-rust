@@ -418,5 +418,178 @@ pub fn dds_create_subscriber(
     .into_error()
 }
 
+/// Create a reader under a participant or subscriber on a topic. This is
+/// primarily used by the [`Reader`][`crate::Reader`] wrapper.
+pub fn dds_create_reader(
+    participant_or_subscriber: cyclonedds_sys::dds_entity_t,
+    topic: cyclonedds_sys::dds_entity_t,
+    qos: Option<&cyclonedds_sys::dds_qos_t>,
+    listener: Option<&cyclonedds_sys::dds_listener_t>,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe {
+        cyclonedds_sys::dds_create_reader(
+            participant_or_subscriber,
+            topic,
+            qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
+            listener
+                .map(|listener| listener as *const _)
+                .unwrap_or(std::ptr::null()),
+        )
+    }
+    .into_error()
+}
+
+/// Create a writer under a participant or publisher on a topic. This is
+/// primarily used by the [`Writer`][`crate::Writer`] wrapper.
+pub fn dds_create_writer(
+    participant_or_publisher: cyclonedds_sys::dds_entity_t,
+    topic: cyclonedds_sys::dds_entity_t,
+    qos: Option<&cyclonedds_sys::dds_qos_t>,
+    listener: Option<&cyclonedds_sys::dds_listener_t>,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe {
+        cyclonedds_sys::dds_create_writer(
+            participant_or_publisher,
+            topic,
+            qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
+            listener
+                .map(|listener| listener as *const _)
+                .unwrap_or(std::ptr::null()),
+        )
+    }
+    .into_error()
+}
+
+///
+pub fn dds_write<T>(writer: cyclonedds_sys::dds_entity_t, sample: &T) -> Result<()> {
+    let sample = (sample as *const T) as *const std::ffi::c_void;
+    unsafe { cyclonedds_sys::dds_write(writer, sample) }.into_error()?;
+    Ok(())
+}
+
+///
+pub fn dds_write_with_timestamp<T>(
+    writer: cyclonedds_sys::dds_entity_t,
+    sample: &T,
+    timestamp: cyclonedds_sys::dds_time_t,
+) -> Result<()> {
+    let sample = (sample as *const T) as *const std::ffi::c_void;
+    unsafe { cyclonedds_sys::dds_write_ts(writer, sample, timestamp) }.into_error()?;
+    Ok(())
+}
+
+unsafe extern "C" fn dds_read_with_collector_callback<T>(
+    arg: *mut std::ffi::c_void,
+    info: *const cyclonedds_sys::dds_sample_info_t,
+    sertype: *const cyclonedds_sys::ddsi_sertype,
+    serdata: *mut cyclonedds_sys::ddsi_serdata,
+) -> cyclonedds_sys::dds_return_t
+where
+    T: std::clone::Clone,
+{
+    let buffer = unsafe { &mut *(arg as *mut Vec<Result<T, ()>>) };
+
+    let info = unsafe { &*info };
+    let mut _sertype = std::mem::ManuallyDrop::new(unsafe {
+        Box::from_raw(sertype as *mut crate::internal::sertype::Sertype<T>)
+    });
+    let mut serdata = std::mem::ManuallyDrop::new(unsafe {
+        Box::from_raw(serdata as *mut crate::internal::serdata::Serdata<T>)
+    });
+
+    if !info.valid_data {
+        buffer.push(Err(()));
+        cyclonedds_sys::DDS_RETCODE_OK as _
+    } else if let Some(sample) = serdata.sample() {
+        buffer.push(Ok(sample.clone()));
+        cyclonedds_sys::DDS_RETCODE_OK as _
+    } else {
+        cyclonedds_sys::DDS_RETCODE_PRECONDITION_NOT_MET
+    }
+}
+
+mod read_operation {
+    type Collector = unsafe extern "C" fn(
+        reader_or_condition: cyclonedds_sys::dds_entity_t,
+        maxs: u32,
+        handle: cyclonedds_sys::dds_instance_handle_t,
+        mask: u32,
+        collect_sample: cyclonedds_sys::dds_read_with_collector_fn_t,
+        collect_sample_arg: *mut std::ffi::c_void,
+    ) -> cyclonedds_sys::dds_return_t;
+
+    pub trait ReadOperation {
+        const COLLECTOR: Collector;
+    }
+
+    pub struct Read;
+    pub struct Take;
+    pub struct Peek;
+
+    impl ReadOperation for Read {
+        const COLLECTOR: Collector = cyclonedds_sys::dds_read_with_collector;
+    }
+    impl ReadOperation for Take {
+        const COLLECTOR: Collector = cyclonedds_sys::dds_take_with_collector;
+    }
+    impl ReadOperation for Peek {
+        const COLLECTOR: Collector = cyclonedds_sys::dds_peek_with_collector;
+    }
+}
+
+#[inline]
+fn dds_read_take_peek<T, RO>(
+    reader_or_condition: cyclonedds_sys::dds_entity_t,
+) -> Result<Vec<Result<T, ()>>>
+where
+    T: std::clone::Clone,
+    RO: read_operation::ReadOperation,
+{
+    let mut buf: Vec<Result<T, ()>> = Vec::new();
+
+    let handle = Default::default();
+    let mask = Default::default();
+    let maxs = i32::MAX as u32;
+    let len = unsafe {
+        RO::COLLECTOR(
+            reader_or_condition,
+            maxs,
+            handle,
+            mask,
+            Some(dds_read_with_collector_callback::<T>),
+            &mut buf as *mut Vec<_> as *mut std::ffi::c_void,
+        )
+    }
+    .into_error()? as usize;
+
+    assert_eq!(len, buf.len());
+
+    Ok(buf)
+}
+
+///
+pub fn dds_take<T>(reader_or_condition: cyclonedds_sys::dds_entity_t) -> Result<Vec<Result<T, ()>>>
+where
+    T: std::clone::Clone,
+{
+    dds_read_take_peek::<T, read_operation::Take>(reader_or_condition)
+}
+
+///
+pub fn dds_read<T>(reader_or_condition: cyclonedds_sys::dds_entity_t) -> Result<Vec<Result<T, ()>>>
+where
+    T: std::clone::Clone,
+{
+    dds_read_take_peek::<T, read_operation::Read>(reader_or_condition)
+}
+
+///
+pub fn dds_peek<T>(reader_or_condition: cyclonedds_sys::dds_entity_t) -> Result<Vec<Result<T, ()>>>
+where
+    T: std::clone::Clone,
+{
+    dds_read_take_peek::<T, read_operation::Peek>(reader_or_condition)
+}
+
 #[cfg(test)]
 mod tests;
