@@ -1,11 +1,13 @@
 pub mod cdr_bounds;
 mod duration;
 mod error;
+mod time;
 mod topicable;
 
 pub use cyclonedds_derive::Topicable;
 pub use duration::Duration;
 pub use error::{Error, Result};
+pub use time::Time;
 pub use topicable::Topicable;
 
 #[cfg(feature = "internal")]
