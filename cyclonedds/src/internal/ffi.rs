@@ -630,5 +630,13 @@ where
     dds_read_take_peek::<T, read_operation::Peek>(reader_or_condition)
 }
 
+///
+pub fn dds_create_readcondition(
+    reader: cyclonedds_sys::dds_entity_t,
+    mask: u32,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe { cyclonedds_sys::dds_create_readcondition(reader, mask) }.into_error()
+}
+
 #[cfg(test)]
 mod tests;
