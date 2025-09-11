@@ -208,8 +208,8 @@ mod tests {
         let domain = crate::Domain::new(domain_id).unwrap();
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
-        let topic = crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name)
-            .unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
         let reader = crate::Reader::new(&participant, &topic).unwrap();
         let _ = QueryCondition::new(
             &reader,
@@ -225,8 +225,8 @@ mod tests {
         let domain = crate::Domain::new(domain_id).unwrap();
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
-        let topic = crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name)
-            .unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
         let mut reader = crate::Reader::new(&participant, &topic).unwrap();
         let reader_id = reader.inner;
         reader.inner = 0;
@@ -246,8 +246,8 @@ mod tests {
         let domain = crate::Domain::new(domain_id).unwrap();
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
-        let topic = crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name)
-            .unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
         let reader = crate::Reader::new(&participant, &topic).unwrap();
         let query_condition = QueryCondition::new(
             &reader,
@@ -266,8 +266,8 @@ mod tests {
         let domain = crate::Domain::new(domain_id).unwrap();
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
-        let topic = crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name)
-            .unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
         let reader = crate::Reader::new(&participant, &topic).unwrap();
 
         let mask = state::sample::Any | state::instance::Any | state::view::Any;
@@ -291,8 +291,8 @@ mod tests {
         let domain = crate::Domain::new(domain_id).unwrap();
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
-        let topic = crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name)
-            .unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
         let reader = crate::Reader::new(&participant, &topic).unwrap();
         let mut query_condition = QueryCondition::new(
             &reader,
@@ -315,8 +315,8 @@ mod tests {
         let domain = crate::Domain::new(domain_id).unwrap();
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
-        let topic = crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name)
-            .unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
         let reader = crate::Reader::new(&participant, &topic).unwrap();
         let writer = crate::Writer::new(&participant, &topic).unwrap();
 
@@ -374,8 +374,8 @@ mod tests {
         let domain = crate::Domain::new(domain_id).unwrap();
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
-        let topic = crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name)
-            .unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
         let reader = crate::Reader::new(&participant, &topic).unwrap();
         let writer = crate::Writer::new(&participant, &topic).unwrap();
 
