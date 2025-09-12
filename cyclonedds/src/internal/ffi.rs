@@ -8,6 +8,9 @@
 pub mod serdata_ops;
 pub mod sertype_ops;
 
+use crate::Result;
+use crate::error::IntoError;
+
 /// Create a new serdata. This is primarily used by the
 /// [`Serdata`][`crate::internal::serdata::Serdata`] wrapper.
 pub fn ddsi_serdata_new(
@@ -50,3 +53,62 @@ pub fn ddsi_sertype_fini(sertype: &mut cyclonedds_sys::ddsi_sertype) {
         cyclonedds_sys::ddsi_sertype_fini(sertype);
     }
 }
+
+///
+pub fn dds_get_mask(condition: cyclonedds_sys::dds_entity_t) -> Result<u32> {
+    let mut mask: u32 = 0;
+    unsafe { cyclonedds_sys::dds_get_mask(condition, &mut mask) }.into_error()?;
+    Ok(mask)
+}
+
+///
+pub fn dds_triggered(entity: cyclonedds_sys::dds_entity_t) -> Result<bool> {
+    let triggered = unsafe { cyclonedds_sys::dds_triggered(entity) }.into_error()?;
+    Ok(triggered == 1)
+}
+
+///
+pub fn dds_get_instance_handle(
+    entity: cyclonedds_sys::dds_entity_t,
+) -> Result<cyclonedds_sys::dds_instance_handle_t> {
+    let mut handle = 0;
+    unsafe { cyclonedds_sys::dds_get_instance_handle(entity, &mut handle) }.into_error()?;
+    Ok(handle)
+}
+
+///
+pub fn dds_get_status_changes(entity: cyclonedds_sys::dds_entity_t) -> Result<u32> {
+    let mut status = 0;
+    unsafe { cyclonedds_sys::dds_get_status_changes(entity, &mut status) }.into_error()?;
+    Ok(status)
+}
+
+///
+pub fn dds_read_status(entity: cyclonedds_sys::dds_entity_t, mask: u32) -> Result<u32> {
+    let mut status: u32 = 0;
+    unsafe { cyclonedds_sys::dds_read_status(entity, &mut status, mask) }.into_error()?;
+    Ok(status)
+}
+
+///
+pub fn dds_take_status(entity: cyclonedds_sys::dds_entity_t, mask: u32) -> Result<u32> {
+    let mut status: u32 = 0;
+    unsafe { cyclonedds_sys::dds_take_status(entity, &mut status, mask) }.into_error()?;
+    Ok(status)
+}
+
+///
+pub fn dds_get_status_mask(entity: cyclonedds_sys::dds_entity_t) -> Result<u32> {
+    let mut mask: u32 = 0;
+    unsafe { cyclonedds_sys::dds_get_status_mask(entity, &mut mask) }.into_error()?;
+    Ok(mask)
+}
+
+///
+pub fn dds_set_status_mask(entity: cyclonedds_sys::dds_entity_t, mask: u32) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_set_status_mask(entity, mask) }.into_error()?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests;
