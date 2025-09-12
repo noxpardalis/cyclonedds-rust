@@ -1,3 +1,4 @@
+pub mod entity;
 mod error;
 mod status;
 
