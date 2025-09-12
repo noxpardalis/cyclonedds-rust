@@ -1,5 +1,6 @@
 mod domain;
 mod duration;
+pub mod entity;
 mod error;
 pub mod qos;
 pub mod state;
