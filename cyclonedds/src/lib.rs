@@ -17,6 +17,7 @@ mod subscriber;
 mod time;
 mod topic;
 mod topicable;
+mod waitset;
 mod writer;
 
 pub use domain::Domain;
@@ -35,6 +36,7 @@ pub use subscriber::{ParticipantOrSubscriber, Subscriber};
 pub use time::Time;
 pub use topic::Topic;
 pub use topicable::Topicable;
+pub use waitset::WaitSet;
 pub use writer::Writer;
 
 #[cfg(feature = "internal")]
