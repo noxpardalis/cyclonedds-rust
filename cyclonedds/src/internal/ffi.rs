@@ -667,5 +667,57 @@ pub fn dds_take_guardcondition(guard_condition: cyclonedds_sys::dds_entity_t) ->
     Ok(triggered)
 }
 
+///
+pub fn dds_create_waitset(
+    participant: cyclonedds_sys::dds_entity_t,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe { cyclonedds_sys::dds_create_waitset(participant) }.into_error()
+}
+
+///
+pub fn dds_waitset_attach(
+    waitset: cyclonedds_sys::dds_entity_t,
+    entity: cyclonedds_sys::dds_entity_t,
+    blob: isize,
+) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_waitset_attach(waitset, entity, blob) }.into_error()?;
+    Ok(())
+}
+
+///
+pub fn dds_waitset_detach(
+    waitset: cyclonedds_sys::dds_entity_t,
+    entity: cyclonedds_sys::dds_entity_t,
+) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_waitset_detach(waitset, entity) }.into_error()?;
+    Ok(())
+}
+
+///
+pub fn dds_waitset_set_trigger(waitset: cyclonedds_sys::dds_entity_t, trigger: bool) -> Result<()> {
+    unsafe { cyclonedds_sys::dds_waitset_set_trigger(waitset, trigger) }.into_error()?;
+    Ok(())
+}
+
+///
+pub fn dds_waitset_wait(
+    waitset: cyclonedds_sys::dds_entity_t,
+    timeout: cyclonedds_sys::dds_duration_t,
+) -> Result<i32> {
+    unsafe { cyclonedds_sys::dds_waitset_wait(waitset, std::ptr::null_mut(), 0, timeout) }
+        .into_error()
+}
+
+///
+pub fn dds_waitset_wait_until(
+    waitset: cyclonedds_sys::dds_entity_t,
+    absolute_time: cyclonedds_sys::dds_time_t,
+) -> Result<i32> {
+    unsafe {
+        cyclonedds_sys::dds_waitset_wait_until(waitset, std::ptr::null_mut(), 0, absolute_time)
+    }
+    .into_error()
+}
+
 #[cfg(test)]
 mod tests;
