@@ -105,3 +105,35 @@ fn test_dds_read_take_peek_on_invalid_entity() {
     let result = dds_read_take_peek::<crate::tests::topic::Data, read_operation::Peek>(0);
     assert!(result.is_err());
 }
+
+#[test]
+fn test_dds_create_entities_with_listeners() {
+    let domain_id = crate::tests::domain::unique_id();
+    let _ = dds_create_domain(domain_id).unwrap();
+    let topic_name = std::ffi::CString::new(crate::tests::topic::unique_name()).unwrap();
+    let listener = dds_create_listener().unwrap();
+    let listener_ref = Some(unsafe { listener.as_ref() });
+    let participant = dds_create_participant(domain_id, None, listener_ref).unwrap();
+    let publisher = dds_create_publisher(participant, None, listener_ref).unwrap();
+    let subscriber = dds_create_subscriber(participant, None, listener_ref).unwrap();
+    let mut sertype =
+        crate::internal::sertype::Sertype::<crate::tests::topic::Data>::new(&topic_name, true);
+    let topic = dds_create_topic(
+        participant,
+        &topic_name,
+        &mut &mut sertype.inner,
+        None,
+        listener_ref,
+    )
+    .unwrap();
+    let writer = dds_create_writer(participant, topic, None, listener_ref).unwrap();
+    let reader = dds_create_reader(participant, topic, None, listener_ref).unwrap();
+
+    dds_delete(reader).unwrap();
+    dds_delete(writer).unwrap();
+    dds_delete(topic).unwrap();
+    dds_delete(subscriber).unwrap();
+    dds_delete(publisher).unwrap();
+    dds_delete(participant).unwrap();
+    dds_delete_listener(listener);
+}
