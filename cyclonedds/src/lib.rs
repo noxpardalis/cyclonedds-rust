@@ -4,6 +4,7 @@ mod duration;
 pub mod entity;
 mod error;
 mod guard_condition;
+pub mod listener;
 mod participant;
 mod publisher;
 pub mod qos;
@@ -24,6 +25,9 @@ pub use domain::Domain;
 pub use duration::Duration;
 pub use error::{Error, Result};
 pub use guard_condition::GuardCondition;
+pub use listener::{
+    Listener, PublisherListener, ReaderListener, SubscriberListener, TopicListener, WriterListener,
+};
 pub use participant::Participant;
 pub use publisher::{ParticipantOrPublisher, Publisher};
 pub use qos::QoS;

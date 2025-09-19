@@ -18,6 +18,7 @@ where
     participant_or_subscriber: Option<ParticipantOrSubscriber<'domain, 'participant>>,
     topic: &'topic Topic<'domain, 'participant, T>,
     qos: Option<&'qos crate::QoS>,
+    listener: Option<crate::ReaderListener<T>>,
 }
 
 impl<'d, 'p, 't, 'q, T> ReaderBuilder<'d, 'p, 't, 'q, T>
@@ -29,11 +30,17 @@ where
             participant_or_subscriber: None,
             topic,
             qos: None,
+            listener: None,
         }
     }
 
     pub fn with_qos(mut self, qos: &'q crate::QoS) -> Self {
         self.qos = Some(qos);
+        self
+    }
+
+    pub fn with_listener(mut self, listener: crate::ReaderListener<T>) -> Self {
+        self.listener = Some(listener);
         self
     }
 
@@ -53,7 +60,10 @@ where
                     .unwrap_or(ffi::dds_get_participant(self.topic.inner)?),
                 self.topic.inner,
                 self.qos.map(|qos| &qos.inner),
-                None,
+                self.listener
+                    .map(|listener| listener.as_ffi())
+                    .transpose()?
+                    .as_ref(),
             )?,
             phantom_topic: std::marker::PhantomData,
         })
@@ -106,6 +116,31 @@ where
             inner,
             phantom_topic: std::marker::PhantomData,
         })
+    }
+
+    pub fn set_listener<L>(&mut self, listener: L) -> Result<()>
+    where
+        L: AsRef<crate::ReaderListener<T>>,
+    {
+        listener
+            .as_ref()
+            .as_ffi()
+            .map(|listener| ffi::dds_set_listener(self.inner, Some(listener.inner)))
+            .flatten()
+    }
+
+    ///
+    pub fn unset_listener(&mut self) -> Result<()> {
+        ffi::dds_set_listener(self.inner, None)?;
+        Ok(())
+    }
+
+    ///
+    pub fn with_listener<L>(mut self, listener: L) -> Result<Self>
+    where
+        L: AsRef<crate::ReaderListener<T>>,
+    {
+        self.set_listener(listener).map(|_| self)
     }
 }
 
@@ -198,5 +233,65 @@ mod tests {
 
         let reader = Reader::new(&topic).unwrap();
         let _ = reader.peek().unwrap();
+    }
+
+    #[test]
+    fn test_reader_with_listener() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+
+        let listener = crate::ReaderListener::new()
+            .with_data_available(|_| ())
+            .with_liveliness_changed(|_, _| ())
+            .with_requested_deadline_missed(|_, _| ())
+            .with_requested_incompatible_qos(|_, _| ())
+            .with_sample_lost(|_, _| ())
+            .with_sample_rejected(|_, _| ())
+            .with_subscription_matched(|_, _| ());
+
+        let _ = Reader::new(&topic)
+            .unwrap()
+            .with_listener(&listener)
+            .unwrap();
+
+        let mut reader = Reader::new(&topic).unwrap();
+        reader.set_listener(&listener).unwrap();
+        reader.unset_listener().unwrap();
+    }
+
+    #[test]
+    fn test_reader_with_listener_on_invalid_reader() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+
+        let listener = crate::ReaderListener::new();
+
+        let mut reader = Reader::new(&topic).unwrap();
+        let reader_id = reader.inner;
+        reader.inner = 0;
+        let result = reader.set_listener(&listener).unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        let result = reader.unset_listener().unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        reader.inner = reader_id;
+    }
+
+    #[test]
+    fn test_reader_create_from_existing() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+
+        let reader_01 = Reader::new(&topic).unwrap();
+        let reader_02 = Reader::<crate::tests::topic::Data>::from_existing(reader_01.inner);
+        assert_eq!(reader_01.inner, reader_02.inner);
     }
 }
