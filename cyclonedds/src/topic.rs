@@ -96,6 +96,31 @@ where
             phantom_participant: std::marker::PhantomData,
         })
     }
+    pub fn set_listener<L>(&mut self, listener: L) -> Result<()>
+    where
+        T: serde::ser::Serialize + serde::de::DeserializeOwned + std::clone::Clone + Default,
+        L: AsRef<crate::TopicListener<T>>,
+    {
+        listener
+            .as_ref()
+            .as_ffi()
+            .and_then(|listener| ffi::dds_set_listener(self.inner, Some(listener.inner)))
+    }
+
+    ///
+    pub fn unset_listener(&mut self) -> Result<()> {
+        ffi::dds_set_listener(self.inner, None)?;
+        Ok(())
+    }
+
+    ///
+    pub fn with_listener<L>(mut self, listener: L) -> Result<Self>
+    where
+        T: serde::ser::Serialize + serde::de::DeserializeOwned + std::clone::Clone + Default,
+        L: AsRef<crate::TopicListener<T>>,
+    {
+        self.set_listener(listener).map(|_| self)
+    }
 }
 
 impl<T> Drop for Topic<'_, '_, T>
@@ -162,5 +187,54 @@ mod tests {
             .unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
         participant.inner = participant_id;
+    }
+
+    #[test]
+    fn test_topic_with_listener() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+
+        let listener = crate::TopicListener::new().with_inconsistent_topic(|_, _| ());
+
+        let _ = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name)
+            .unwrap()
+            .with_listener(&listener)
+            .unwrap();
+
+        let mut topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+        topic.set_listener(&listener).unwrap();
+        topic.unset_listener().unwrap();
+    }
+
+    #[test]
+    fn test_topic_with_listener_on_invalid_topic() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+
+        let listener = crate::TopicListener::new();
+
+        let mut topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+        let topic_id = topic.inner;
+        topic.inner = 0;
+        let result = topic.set_listener(&listener).unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        let result = topic.unset_listener().unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        topic.inner = topic_id;
+    }
+
+    #[test]
+    fn test_topic_create_from_existing() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic_01 = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+        let topic_02 = Topic::<crate::tests::topic::Data>::from_existing(topic_01.inner);
+        assert_eq!(topic_01.inner, topic_02.inner);
     }
 }

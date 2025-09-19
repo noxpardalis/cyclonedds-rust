@@ -18,6 +18,7 @@ where
     publisher: Option<&'participant Publisher<'domain, 'participant>>,
     topic: &'topic Topic<'domain, 'participant, T>,
     qos: Option<&'qos crate::QoS>,
+    listener: Option<crate::WriterListener<T>>,
 }
 
 impl<'d, 'p, 't, 'q, T> WriterBuilder<'d, 'p, 't, 'q, T>
@@ -29,11 +30,17 @@ where
             publisher: None,
             topic,
             qos: None,
+            listener: None,
         }
     }
 
     pub fn with_qos(mut self, qos: &'q crate::QoS) -> Self {
         self.qos = Some(qos);
+        self
+    }
+
+    pub fn with_listener(mut self, listener: crate::WriterListener<T>) -> Self {
+        self.listener = Some(listener);
         self
     }
 
@@ -50,7 +57,10 @@ where
                     .unwrap_or(ffi::dds_get_participant(self.topic.inner)?),
                 self.topic.inner,
                 self.qos.map(|qos| &qos.inner),
-                None,
+                self.listener
+                    .map(|listener| listener.as_ffi())
+                    .transpose()?
+                    .as_ref(),
             )?,
             phantom_topic: std::marker::PhantomData,
         })
@@ -194,6 +204,31 @@ where
             phantom_topic: std::marker::PhantomData,
         })
     }
+
+    ///
+    pub fn set_listener<L>(&mut self, listener: L) -> Result<()>
+    where
+        L: AsRef<crate::WriterListener<T>>,
+    {
+        listener
+            .as_ref()
+            .as_ffi()
+            .and_then(|listener| ffi::dds_set_listener(self.inner, Some(listener.inner)))
+    }
+
+    ///
+    pub fn unset_listener(&mut self) -> Result<()> {
+        ffi::dds_set_listener(self.inner, None)?;
+        Ok(())
+    }
+
+    ///
+    pub fn with_listener<L>(mut self, listener: L) -> Result<Self>
+    where
+        L: AsRef<crate::WriterListener<T>>,
+    {
+        self.set_listener(listener).map(|_| self)
+    }
 }
 
 impl<T> Drop for Writer<'_, '_, '_, T>
@@ -311,5 +346,62 @@ mod tests {
         writer.inner = writer_id;
 
         assert_eq!(result, crate::Error::BadParameter);
+    }
+
+    #[test]
+    fn test_writer_with_listener() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+
+        let listener = crate::WriterListener::new()
+            .with_liveliness_lost(|_, _| ())
+            .with_offered_deadline_missed(|_, _| ())
+            .with_offered_incompatible_qos(|_, _| ())
+            .with_publication_matched(|_, _| ());
+
+        let _ = Writer::new(&topic)
+            .unwrap()
+            .with_listener(&listener)
+            .unwrap();
+
+        let mut writer = Writer::new(&topic).unwrap();
+        writer.set_listener(&listener).unwrap();
+        writer.unset_listener().unwrap();
+    }
+
+    #[test]
+    fn test_writer_with_listener_on_invalid_writer() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+
+        let listener = crate::WriterListener::new();
+
+        let mut writer = Writer::new(&topic).unwrap();
+        let writer_id = writer.inner;
+        writer.inner = 0;
+        let result = writer.set_listener(&listener).unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        let result = writer.unset_listener().unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        writer.inner = writer_id;
+    }
+
+    #[test]
+    fn test_writer_create_from_existing() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+
+        let writer_01 = Writer::new(&topic).unwrap();
+        let writer_02 = Writer::<crate::tests::topic::Data>::from_existing(writer_01.inner);
+        assert_eq!(writer_01.inner, writer_02.inner);
     }
 }
