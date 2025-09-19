@@ -55,6 +55,34 @@ impl<'d, 'p> Publisher<'d, 'p> {
             phantom: Default::default(),
         })
     }
+
+    ///
+    pub fn set_listener<T, L>(&mut self, listener: L) -> Result<()>
+    where
+        T: serde::ser::Serialize + serde::de::DeserializeOwned + std::clone::Clone + Default,
+        L: AsRef<crate::PublisherListener<T>>,
+    {
+        listener
+            .as_ref()
+            .as_ffi()
+            .map(|listener| ffi::dds_set_listener(self.inner, Some(listener.inner)))
+            .flatten()
+    }
+
+    ///
+    pub fn unset_listener(&mut self) -> Result<()> {
+        ffi::dds_set_listener(self.inner, None)?;
+        Ok(())
+    }
+
+    ///
+    pub fn with_listener<T, L>(mut self, listener: L) -> Result<Self>
+    where
+        T: serde::ser::Serialize + serde::de::DeserializeOwned + std::clone::Clone + Default,
+        L: AsRef<crate::PublisherListener<T>>,
+    {
+        self.set_listener(listener).map(|_| self)
+    }
 }
 
 impl Drop for Publisher<'_, '_> {
@@ -105,5 +133,43 @@ mod tests {
 
         let participant_or_publisher = ParticipantOrPublisher::from(&publisher);
         assert_eq!(participant_or_publisher.inner(), publisher.inner);
+    }
+
+    #[test]
+    fn test_publisher_with_listener() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let participant = crate::Participant::new(&domain).unwrap();
+
+        let listener = crate::PublisherListener::<crate::tests::topic::Data>::new()
+            .with_writer(|writer| writer.with_liveliness_lost(|_, _| unreachable!()));
+
+        let _ = Publisher::new(&participant)
+            .unwrap()
+            .with_listener(&listener)
+            .unwrap();
+
+        let mut publisher = Publisher::new(&participant).unwrap();
+        publisher.set_listener(&listener).unwrap();
+        publisher.unset_listener().unwrap();
+    }
+
+    #[test]
+    fn test_publisher_with_listener_on_invalid_publisher() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let participant = crate::Participant::new(&domain).unwrap();
+
+        let listener = crate::PublisherListener::<crate::tests::topic::Data>::new()
+            .with_writer(|writer| writer.with_liveliness_lost(|_, _| unreachable!()));
+
+        let mut publisher = Publisher::new(&participant).unwrap();
+        let publisher_id = publisher.inner;
+        publisher.inner = 0;
+        let result = publisher.set_listener(&listener).unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        let result = publisher.unset_listener().unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        publisher.inner = publisher_id;
     }
 }

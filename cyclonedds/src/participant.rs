@@ -24,6 +24,34 @@ impl<'d> Participant<'d> {
             phantom: Default::default(),
         })
     }
+
+    ///
+    pub fn set_listener<T, L>(&mut self, listener: L) -> Result<()>
+    where
+        T: serde::ser::Serialize + serde::de::DeserializeOwned + std::clone::Clone + Default,
+        L: AsRef<crate::Listener<T>>,
+    {
+        listener
+            .as_ref()
+            .as_ffi()
+            .map(|listener| ffi::dds_set_listener(self.inner, Some(listener.inner)))
+            .flatten()
+    }
+
+    ///
+    pub fn unset_listener(&mut self) -> Result<()> {
+        ffi::dds_set_listener(self.inner, None)?;
+        Ok(())
+    }
+
+    ///
+    pub fn with_listener<T, L>(mut self, listener: L) -> Result<Self>
+    where
+        T: serde::ser::Serialize + serde::de::DeserializeOwned + std::clone::Clone + Default,
+        L: AsRef<crate::Listener<T>>,
+    {
+        self.set_listener(listener).map(|_| self)
+    }
 }
 
 impl Drop for Participant<'_> {
@@ -64,5 +92,39 @@ mod tests {
         let qos = crate::QoS::new();
         let result = Participant::new_with_qos(&domain, &qos).unwrap_err();
         assert_eq!(result, Error::NonSpecific);
+    }
+
+    #[test]
+    fn test_participant_with_listener() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+
+        let listener = crate::Listener::<crate::tests::topic::Data>::new();
+
+        let _ = Participant::new(&domain)
+            .unwrap()
+            .with_listener(&listener)
+            .unwrap();
+
+        let mut participant = Participant::new(&domain).unwrap();
+        participant.set_listener(&listener).unwrap();
+        participant.unset_listener().unwrap();
+    }
+
+    #[test]
+    fn test_participant_with_listener_on_invalid_participant() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+
+        let listener = crate::Listener::<crate::tests::topic::Data>::new();
+
+        let mut participant = Participant::new(&domain).unwrap();
+        let participant_id = participant.inner;
+        participant.inner = 0;
+        let result = participant.set_listener(&listener).unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        let result = participant.unset_listener().unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        participant.inner = participant_id;
     }
 }

@@ -5,11 +5,21 @@
 
 #![allow(unsafe_code)]
 
+mod listener;
 pub mod serdata_ops;
 pub mod sertype_ops;
 
 use crate::Result;
 use crate::error::IntoError;
+pub use listener::{
+    Listener, dds_create_listener, dds_delete_listener, dds_listener_set_data_available,
+    dds_listener_set_data_on_readers, dds_listener_set_inconsistent_topic,
+    dds_listener_set_liveliness_changed, dds_listener_set_liveliness_lost,
+    dds_listener_set_offered_deadline_missed, dds_listener_set_offered_incompatible_qos,
+    dds_listener_set_publication_matched, dds_listener_set_requested_deadline_missed,
+    dds_listener_set_requested_incompatible_qos, dds_listener_set_sample_lost,
+    dds_listener_set_sample_rejected, dds_listener_set_subscription_matched, dds_set_listener,
+};
 
 /// Create a new serdata. This is primarily used by the
 /// [`Serdata`][`crate::internal::serdata::Serdata`] wrapper.

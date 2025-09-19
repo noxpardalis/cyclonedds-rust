@@ -65,6 +65,34 @@ impl<'d, 'p> Subscriber<'d, 'p> {
             phantom: Default::default(),
         })
     }
+
+    ///
+    pub fn set_listener<T, L>(&mut self, listener: L) -> Result<()>
+    where
+        T: serde::ser::Serialize + serde::de::DeserializeOwned + std::clone::Clone + Default,
+        L: AsRef<crate::SubscriberListener<T>>,
+    {
+        listener
+            .as_ref()
+            .as_ffi()
+            .map(|listener| ffi::dds_set_listener(self.inner, Some(listener.inner)))
+            .flatten()
+    }
+
+    ///
+    pub fn unset_listener(&mut self) -> Result<()> {
+        ffi::dds_set_listener(self.inner, None)?;
+        Ok(())
+    }
+
+    ///
+    pub fn with_listener<T, L>(mut self, listener: L) -> Result<Self>
+    where
+        T: serde::ser::Serialize + serde::de::DeserializeOwned + std::clone::Clone + Default,
+        L: AsRef<crate::SubscriberListener<T>>,
+    {
+        self.set_listener(listener).map(|_| self)
+    }
 }
 
 impl Drop for Subscriber<'_, '_> {
@@ -115,5 +143,54 @@ mod tests {
 
         let participant_or_subscriber = ParticipantOrSubscriber::from(&subscriber);
         assert_eq!(participant_or_subscriber.inner(), subscriber.inner);
+    }
+
+    #[test]
+    fn test_subscriber_with_listener() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let participant = crate::Participant::new(&domain).unwrap();
+
+        let listener = crate::SubscriberListener::<crate::tests::topic::Data>::new()
+            .with_data_on_readers(|_| unreachable!());
+
+        let _ = Subscriber::new(&participant)
+            .unwrap()
+            .with_listener(&listener)
+            .unwrap();
+
+        let mut subscriber = Subscriber::new(&participant).unwrap();
+        subscriber.set_listener(&listener).unwrap();
+        subscriber.unset_listener().unwrap();
+    }
+
+    #[test]
+    fn test_subscriber_with_listener_on_invalid_subscriber() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let participant = crate::Participant::new(&domain).unwrap();
+
+        let listener = crate::SubscriberListener::<crate::tests::topic::Data>::new()
+            .with_data_on_readers(|_| unreachable!());
+
+        let mut subscriber = Subscriber::new(&participant).unwrap();
+        let subscriber_id = subscriber.inner;
+        subscriber.inner = 0;
+        let result = subscriber.set_listener(&listener).unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        let result = subscriber.unset_listener().unwrap_err();
+        assert_eq!(result, crate::Error::BadParameter);
+        subscriber.inner = subscriber_id;
+    }
+
+    #[test]
+    fn test_subscriber_create_from_existing() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let participant = crate::Participant::new(&domain).unwrap();
+
+        let subscriber_01 = Subscriber::new(&participant).unwrap();
+        let subscriber_02 = Subscriber::from_existing(subscriber_01.inner);
+        assert_eq!(subscriber_01.inner, subscriber_02.inner);
     }
 }
