@@ -84,7 +84,8 @@ pub fn dds_listener_set_liveliness_lost<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_liveliness_lost_arg(
@@ -107,7 +108,8 @@ pub fn dds_listener_set_offered_deadline_missed<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_offered_deadline_missed_arg(
@@ -130,7 +132,8 @@ pub fn dds_listener_set_offered_incompatible_qos<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_offered_incompatible_qos_arg(
@@ -153,7 +156,8 @@ pub fn dds_listener_set_publication_matched<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_publication_matched_arg(
@@ -176,7 +180,8 @@ pub fn dds_listener_set_sample_lost<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_sample_lost_arg(
@@ -197,7 +202,8 @@ where
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_data_available_arg(
@@ -220,7 +226,8 @@ pub fn dds_listener_set_sample_rejected<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_sample_rejected_arg(
@@ -243,7 +250,8 @@ pub fn dds_listener_set_liveliness_changed<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_liveliness_changed_arg(
@@ -266,7 +274,8 @@ pub fn dds_listener_set_requested_deadline_missed<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_requested_deadline_missed_arg(
@@ -289,7 +298,8 @@ pub fn dds_listener_set_requested_incompatible_qos<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_requested_incompatible_qos_arg(
@@ -312,7 +322,8 @@ pub fn dds_listener_set_subscription_matched<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     unsafe {
         cyclonedds_sys::dds_lset_subscription_matched_arg(
@@ -367,7 +378,8 @@ unsafe extern "C" fn on_liveliness_lost_shim<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     let writer = crate::Writer::from_existing(writer);
     let status = status.into();
@@ -385,7 +397,8 @@ unsafe extern "C" fn on_offered_deadline_missed_shim<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     let writer = crate::Writer::from_existing(writer);
     let status = status.into();
@@ -403,7 +416,8 @@ unsafe extern "C" fn on_offered_incompatible_qos_shim<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     let writer = crate::Writer::from_existing(writer);
     let status = status.into();
@@ -421,7 +435,8 @@ unsafe extern "C" fn on_publication_matched_shim<T>(
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     let writer = crate::Writer::from_existing(writer);
     let status = status.into();
@@ -434,7 +449,9 @@ unsafe extern "C" fn on_sample_lost_shim<T>(
     reader: cyclonedds_sys::dds_entity_t,
     status: cyclonedds_sys::dds_sample_lost_status_t,
     arg: *mut std::ffi::c_void,
-) {
+) where
+    T: crate::sample::Keyed,
+{
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
     let callback: fn(&crate::Reader<T>, crate::status::SampleLost) =
@@ -445,7 +462,9 @@ unsafe extern "C" fn on_sample_lost_shim<T>(
 unsafe extern "C" fn on_data_available_shim<T>(
     reader: cyclonedds_sys::dds_entity_t,
     arg: *mut std::ffi::c_void,
-) {
+) where
+    T: crate::sample::Keyed,
+{
     let reader = crate::Reader::from_existing(reader);
     let callback: fn(&crate::Reader<T>) = unsafe { std::mem::transmute(arg) };
     callback(&reader);
@@ -455,7 +474,9 @@ unsafe extern "C" fn on_sample_rejected_shim<T>(
     reader: cyclonedds_sys::dds_entity_t,
     status: cyclonedds_sys::dds_sample_rejected_status_t,
     arg: *mut std::ffi::c_void,
-) {
+) where
+    T: crate::sample::Keyed,
+{
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
     let callback: fn(&crate::Reader<T>, crate::status::SampleRejected) =
@@ -467,7 +488,9 @@ unsafe extern "C" fn on_liveliness_changed_shim<T>(
     reader: cyclonedds_sys::dds_entity_t,
     status: cyclonedds_sys::dds_liveliness_changed_status_t,
     arg: *mut std::ffi::c_void,
-) {
+) where
+    T: crate::sample::Keyed,
+{
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
     let callback: fn(&crate::Reader<T>, crate::status::LivelinessChanged) =
@@ -479,7 +502,9 @@ unsafe extern "C" fn on_requested_deadline_missed_shim<T>(
     reader: cyclonedds_sys::dds_entity_t,
     status: cyclonedds_sys::dds_requested_deadline_missed_status_t,
     arg: *mut std::ffi::c_void,
-) {
+) where
+    T: crate::sample::Keyed,
+{
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
     let callback: fn(&crate::Reader<T>, crate::status::RequestedDeadlineMissed) =
@@ -491,7 +516,9 @@ unsafe extern "C" fn on_requested_incompatible_qos_shim<T>(
     reader: cyclonedds_sys::dds_entity_t,
     status: cyclonedds_sys::dds_requested_incompatible_qos_status_t,
     arg: *mut std::ffi::c_void,
-) {
+) where
+    T: crate::sample::Keyed,
+{
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
     let callback: fn(&crate::Reader<T>, crate::status::RequestedIncompatibleQoS) =
@@ -503,7 +530,9 @@ unsafe extern "C" fn on_subscription_matched_shim<T>(
     reader: cyclonedds_sys::dds_entity_t,
     status: cyclonedds_sys::dds_subscription_matched_status_t,
     arg: *mut std::ffi::c_void,
-) {
+) where
+    T: crate::sample::Keyed,
+{
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
     let callback: fn(&crate::Reader<T>, crate::status::SubscriptionMatched) =

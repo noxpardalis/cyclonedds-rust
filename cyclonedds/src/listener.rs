@@ -32,7 +32,10 @@ pub struct SubscriberListener {
 
 ///
 #[derive(Debug)]
-pub struct ReaderListener<T> {
+pub struct ReaderListener<T>
+where
+    T: crate::sample::Keyed,
+{
     sample_lost: Option<fn(&crate::Reader<T>, SampleLost)>,
     data_available: Option<fn(&crate::Reader<T>)>,
     sample_rejected: Option<fn(&crate::Reader<T>, SampleRejected)>,
@@ -51,7 +54,10 @@ pub struct PublisherListener {
 
 ///
 #[derive(Debug)]
-pub struct WriterListener<T> {
+pub struct WriterListener<T>
+where
+    T: crate::sample::Keyed,
+{
     liveliness_lost: Option<fn(&crate::Writer<T>, LivelinessLost)>,
     offered_deadline_missed: Option<fn(&crate::Writer<T>, OfferedDeadlineMissed)>,
     offered_incompatible_qos: Option<fn(&crate::Writer<T>, OfferedIncompatibleQoS)>,
@@ -93,7 +99,10 @@ impl Default for PublisherListener {
     }
 }
 
-impl<T> Default for ReaderListener<T> {
+impl<T> Default for ReaderListener<T>
+where
+    T: crate::sample::Keyed,
+{
     fn default() -> Self {
         Self {
             sample_lost: Default::default(),
@@ -107,7 +116,10 @@ impl<T> Default for ReaderListener<T> {
     }
 }
 
-impl<T> Default for WriterListener<T> {
+impl<T> Default for WriterListener<T>
+where
+    T: crate::sample::Keyed,
+{
     fn default() -> Self {
         Self {
             liveliness_lost: Default::default(),
@@ -271,7 +283,8 @@ where
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     ///
     pub fn new() -> Self {
@@ -374,7 +387,8 @@ where
         + serde::de::DeserializeOwned
         + std::clone::Clone
         + std::default::Default
-        + std::fmt::Debug,
+        + std::fmt::Debug
+        + crate::sample::Keyed,
 {
     ///
     pub fn new() -> Self {
@@ -441,12 +455,18 @@ where
     }
 }
 
-impl<T> AsRef<ReaderListener<T>> for ReaderListener<T> {
+impl<T> AsRef<ReaderListener<T>> for ReaderListener<T>
+where
+    T: crate::sample::Keyed,
+{
     fn as_ref(&self) -> &ReaderListener<T> {
         self
     }
 }
-impl<T> AsRef<WriterListener<T>> for WriterListener<T> {
+impl<T> AsRef<WriterListener<T>> for WriterListener<T>
+where
+    T: crate::sample::Keyed,
+{
     fn as_ref(&self) -> &WriterListener<T> {
         self
     }
@@ -547,6 +567,7 @@ mod tests {
 
     fn receive_reader_listener<L, T>(listener: L)
     where
+        T: crate::sample::Keyed,
         L: AsRef<ReaderListener<T>>,
     {
         let _ = listener.as_ref();
@@ -555,6 +576,7 @@ mod tests {
 
     fn receive_writer_listener<L, T>(listener: L)
     where
+        T: crate::sample::Keyed,
         L: AsRef<WriterListener<T>>,
     {
         let _ = listener.as_ref();

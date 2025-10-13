@@ -104,6 +104,7 @@ use ffi::Filter;
 /// </details>
 pub struct QueryCondition<'domain, 'participant, 'topic, 'reader, T, F>
 where
+    T: crate::sample::Keyed,
     F: Fn(&T) -> bool,
 {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
@@ -113,6 +114,7 @@ where
 
 impl<T, F> std::fmt::Debug for QueryCondition<'_, '_, '_, '_, T, F>
 where
+    T: crate::sample::Keyed,
     F: Fn(&T) -> bool,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -125,14 +127,14 @@ where
 
 impl<T, F> Filter<T, F> for QueryCondition<'_, '_, '_, '_, T, F>
 where
-    T: std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+    T: crate::sample::Keyed + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
     F: Fn(&T) -> bool,
 {
 }
 
 impl<'d, 'p, 't, 'r, T, F> QueryCondition<'d, 'p, 't, 'r, T, F>
 where
-    T: std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+    T: crate::sample::Keyed + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
     F: Fn(&T) -> bool,
 {
     ///
@@ -159,7 +161,7 @@ where
     }
 
     ///
-    pub fn take(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn take(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -167,7 +169,7 @@ where
     }
 
     ///
-    pub fn read(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn read(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -175,7 +177,7 @@ where
     }
 
     ///
-    pub fn peek(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn peek(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -185,6 +187,7 @@ where
 
 impl<T, F> Drop for QueryCondition<'_, '_, '_, '_, T, F>
 where
+    T: crate::sample::Keyed,
     F: Fn(&T) -> bool,
 {
     fn drop(&mut self) {
@@ -331,22 +334,12 @@ mod tests {
         };
         writer.write(&sample).unwrap();
 
-        let query_condition_received = query_condition
-            .read()
-            .unwrap()
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+        let query_condition_received = query_condition.read().unwrap();
         assert_eq!(query_condition_received.len(), 0);
         let triggered = query_condition.triggered().unwrap();
         assert_eq!(triggered, false);
 
-        let reader_received = reader
-            .read()
-            .unwrap()
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+        let reader_received = reader.read().unwrap();
         assert_eq!(reader_received.len(), 1);
         assert_eq!(*reader_received[0], sample);
         assert_eq!(
@@ -357,24 +350,14 @@ mod tests {
         let triggered = query_condition.triggered().unwrap();
         assert_eq!(triggered, true);
 
-        let query_condition_received = query_condition
-            .peek()
-            .unwrap()
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+        let query_condition_received = query_condition.peek().unwrap();
         assert_eq!(query_condition_received.len(), 1);
         assert_eq!(*query_condition_received[0], sample);
 
         let triggered = query_condition.triggered().unwrap();
         assert_eq!(triggered, true);
 
-        let query_condition_received = query_condition
-            .take()
-            .unwrap()
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+        let query_condition_received = query_condition.take().unwrap();
         assert_eq!(query_condition_received.len(), 1);
         assert_eq!(*query_condition_received[0], sample);
 
@@ -415,12 +398,7 @@ mod tests {
         let triggered = query_condition.triggered().unwrap();
         assert_eq!(triggered, false);
 
-        let reader_received = reader
-            .read()
-            .unwrap()
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+        let reader_received = reader.read().unwrap();
         assert_eq!(reader_received.len(), 1);
         assert_eq!(*reader_received[0], sample);
         assert_eq!(

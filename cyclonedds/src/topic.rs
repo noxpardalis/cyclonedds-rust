@@ -22,44 +22,6 @@ where
         + std::fmt::Debug,
 {
     ///
-    pub fn new(participant: &'p Participant<'d>, name: &str) -> Result<Self> {
-        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
-        let mut sertype = Sertype::<T>::new(&name, true);
-        let inner = ffi::dds_create_topic(
-            participant.inner,
-            &name,
-            &mut &mut sertype.inner,
-            None,
-            None,
-        )?;
-
-        Ok(Self {
-            inner,
-            _sertype: Some(sertype),
-            phantom_participant: std::marker::PhantomData,
-        })
-    }
-
-    ///
-    pub fn new_with_qos(participant: &'p Participant<'d>, name: &str, qos: &QoS) -> Result<Self> {
-        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
-        let mut sertype = Sertype::<T>::new(&name, true);
-        let inner = ffi::dds_create_topic(
-            participant.inner,
-            &name,
-            &mut &mut sertype.inner,
-            Some(&qos.inner),
-            None,
-        )?;
-
-        Ok(Self {
-            inner,
-            _sertype: Some(sertype),
-            phantom_participant: std::marker::PhantomData,
-        })
-    }
-
-    ///
     pub(crate) const fn from_existing(
         inner: cyclonedds_sys::dds_entity_t,
     ) -> std::mem::ManuallyDrop<Self> {
@@ -94,6 +56,106 @@ where
         L: AsRef<crate::TopicListener<T>>,
     {
         self.set_listener(listener).map(|_| self)
+    }
+}
+
+impl<'d, 'p, T> Topic<'d, 'p, T>
+where
+    T: serde::ser::Serialize
+        + serde::de::DeserializeOwned
+        + std::clone::Clone
+        + std::default::Default
+        + std::fmt::Debug
+        + crate::sample::Keyed<Key = std::convert::Infallible>,
+{
+    ///
+    pub fn new(participant: &'p Participant<'d>, name: &str) -> Result<Self> {
+        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
+        let mut sertype = Sertype::<T>::new(&name, true);
+        let inner = ffi::dds_create_topic(
+            participant.inner,
+            &name,
+            &mut &mut sertype.inner,
+            None,
+            None,
+        )?;
+
+        Ok(Self {
+            inner,
+            _sertype: Some(sertype),
+            phantom_participant: Default::default(),
+        })
+    }
+
+    ///
+    pub fn new_with_qos(participant: &'p Participant<'d>, name: &str, qos: &QoS) -> Result<Self> {
+        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
+        let mut sertype = Sertype::<T>::new(&name, true);
+        let inner = ffi::dds_create_topic(
+            participant.inner,
+            &name,
+            &mut &mut sertype.inner,
+            Some(&qos.inner),
+            None,
+        )?;
+
+        Ok(Self {
+            inner,
+            _sertype: Some(sertype),
+            phantom_participant: Default::default(),
+        })
+    }
+}
+
+impl<'d, 'p, T> Topic<'d, 'p, T>
+where
+    T: serde::ser::Serialize
+        + serde::de::DeserializeOwned
+        + std::clone::Clone
+        + std::default::Default
+        + std::fmt::Debug
+        + crate::sample::Keyed,
+{
+    ///
+    pub fn new_keyed(participant: &'p Participant<'d>, name: &str) -> Result<Self> {
+        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
+        let mut sertype = Sertype::<T>::new(&name, false);
+        let inner = ffi::dds_create_topic(
+            participant.inner,
+            &name,
+            &mut &mut sertype.inner,
+            None,
+            None,
+        )?;
+
+        Ok(Self {
+            inner,
+            _sertype: Some(sertype),
+            phantom_participant: Default::default(),
+        })
+    }
+
+    ///
+    pub fn new_keyed_with_qos(
+        participant: &'p Participant<'d>,
+        name: &str,
+        qos: &QoS,
+    ) -> Result<Self> {
+        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
+        let mut sertype = Sertype::<T>::new(&name, false);
+        let inner = ffi::dds_create_topic(
+            participant.inner,
+            &name,
+            &mut &mut sertype.inner,
+            Some(&qos.inner),
+            None,
+        )?;
+
+        Ok(Self {
+            inner,
+            _sertype: Some(sertype),
+            phantom_participant: Default::default(),
+        })
     }
 }
 

@@ -49,7 +49,7 @@ fn test_dds_read_with_collector_on_empty_sample() {
         crate::internal::serdata::Serdata::new(&sertype, crate::internal::serdata::Kind::Empty);
 
     let mut vec: Vec<
-        Result<crate::sample::Sample<crate::tests::topic::Data>, crate::sample::Info>,
+        Result<crate::sample::SampleOrKey<crate::tests::topic::Data>, crate::sample::Info>,
     > = Vec::new();
     let arg = &mut vec as *mut Vec<_> as *mut std::ffi::c_void;
     let mut info = cyclonedds_sys::dds_sample_info_t::default();
@@ -87,9 +87,7 @@ fn test_dds_read_with_collector_on_invalid_sample() {
     let mut serdata =
         crate::internal::serdata::Serdata::new(&sertype, crate::internal::serdata::Kind::Empty);
 
-    let mut vec: Vec<
-        Result<crate::sample::Sample<crate::tests::topic::Data>, crate::sample::Info>,
-    > = Vec::new();
+    let mut vec: Vec<crate::sample::SampleOrKey<crate::tests::topic::Data>> = Vec::new();
     let arg = &mut vec as *mut Vec<_> as *mut std::ffi::c_void;
     let mut info = cyclonedds_sys::dds_sample_info_t::default();
 
@@ -105,11 +103,7 @@ fn test_dds_read_with_collector_on_invalid_sample() {
     .unwrap();
 
     assert_eq!(result, cyclonedds_sys::DDS_RETCODE_OK as _);
-    assert_eq!(vec.len(), 1);
-    assert_eq!(
-        vec[0],
-        Err((&cyclonedds_sys::dds_sample_info_t::default()).into())
-    );
+    assert_eq!(vec.len(), 0);
 
     let sample: crate::tests::topic::Data = Default::default();
     serdata.sample = Some(std::sync::Arc::new(sample.clone()));
@@ -126,12 +120,8 @@ fn test_dds_read_with_collector_on_invalid_sample() {
     .unwrap();
 
     assert_eq!(result, cyclonedds_sys::DDS_RETCODE_OK as _);
-    assert_eq!(vec.len(), 2);
-    assert_eq!(
-        vec[0],
-        Err((&cyclonedds_sys::dds_sample_info_t::default()).into())
-    );
-    assert_eq!(*vec[1].clone().unwrap(), Default::default());
+    assert_eq!(vec.len(), 1);
+    assert_eq!(*vec[0], Default::default());
 }
 
 #[test]

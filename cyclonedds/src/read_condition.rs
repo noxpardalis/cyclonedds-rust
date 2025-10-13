@@ -5,12 +5,18 @@ use crate::internal::ffi;
 
 ///
 #[derive(Debug)]
-pub struct ReadCondition<'domain, 'participant, 'topic, 'reader, T> {
+pub struct ReadCondition<'domain, 'participant, 'topic, 'reader, T>
+where
+    T: crate::sample::Keyed,
+{
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
     phantom: std::marker::PhantomData<&'reader Reader<'domain, 'participant, 'topic, T>>,
 }
 
-impl<'d, 'p, 't, 'r, T> ReadCondition<'d, 'p, 't, 'r, T> {
+impl<'d, 'p, 't, 'r, T> ReadCondition<'d, 'p, 't, 'r, T>
+where
+    T: crate::sample::Keyed,
+{
     ///
     pub fn new(reader: &'r Reader<'d, 'p, 't, T>, mask: State) -> Result<Self> {
         let inner = ffi::dds_create_readcondition(reader.inner, mask.bits())?;
@@ -32,7 +38,7 @@ impl<'d, 'p, 't, 'r, T> ReadCondition<'d, 'p, 't, 'r, T> {
     }
 
     ///
-    pub fn take(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn take(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -40,7 +46,7 @@ impl<'d, 'p, 't, 'r, T> ReadCondition<'d, 'p, 't, 'r, T> {
     }
 
     ///
-    pub fn read(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn read(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -48,7 +54,7 @@ impl<'d, 'p, 't, 'r, T> ReadCondition<'d, 'p, 't, 'r, T> {
     }
 
     ///
-    pub fn peek(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn peek(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -56,7 +62,10 @@ impl<'d, 'p, 't, 'r, T> ReadCondition<'d, 'p, 't, 'r, T> {
     }
 }
 
-impl<T> Drop for ReadCondition<'_, '_, '_, '_, T> {
+impl<T> Drop for ReadCondition<'_, '_, '_, '_, T>
+where
+    T: crate::sample::Keyed,
+{
     fn drop(&mut self) {
         let result = ffi::dds_delete(self.inner);
         debug_assert!(result.is_ok());
@@ -179,12 +188,7 @@ mod tests {
         let triggered = read_condition.triggered().unwrap();
         assert_eq!(triggered, false);
 
-        let reader_received = reader
-            .read()
-            .unwrap()
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+        let reader_received = reader.read().unwrap();
         assert_eq!(reader_received.len(), 1);
         assert_eq!(*reader_received[0], sample);
         assert_eq!(
@@ -195,24 +199,14 @@ mod tests {
         let triggered = read_condition.triggered().unwrap();
         assert_eq!(triggered, true);
 
-        let read_condition_received = read_condition
-            .peek()
-            .unwrap()
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+        let read_condition_received = read_condition.peek().unwrap();
         assert_eq!(read_condition_received.len(), 1);
         assert_eq!(*read_condition_received[0], sample);
 
         let triggered = read_condition.triggered().unwrap();
         assert_eq!(triggered, true);
 
-        let read_condition_received = read_condition
-            .take()
-            .unwrap()
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+        let read_condition_received = read_condition.take().unwrap();
         assert_eq!(read_condition_received.len(), 1);
         assert_eq!(*read_condition_received[0], sample);
 

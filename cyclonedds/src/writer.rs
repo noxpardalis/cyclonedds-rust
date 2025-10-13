@@ -5,12 +5,18 @@ use crate::internal::ffi;
 
 ///
 #[derive(Debug)]
-pub struct Writer<'domain, 'participant, 'topic, T> {
+pub struct Writer<'domain, 'participant, 'topic, T>
+where
+    T: crate::sample::Keyed,
+{
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
     phantom_topic: std::marker::PhantomData<&'topic Topic<'domain, 'participant, T>>,
 }
 
-impl<'d, 'p, 't, T> Writer<'d, 'p, 't, T> {
+impl<'d, 'p, 't, T> Writer<'d, 'p, 't, T>
+where
+    T: crate::sample::Keyed,
+{
     ///
     pub fn new<P>(participant_or_publisher: P, topic: &'t Topic<'d, 'p, T>) -> Result<Self>
     where
@@ -105,7 +111,10 @@ impl<'d, 'p, 't, T> Writer<'d, 'p, 't, T> {
     }
 }
 
-impl<T> Drop for Writer<'_, '_, '_, T> {
+impl<T> Drop for Writer<'_, '_, '_, T>
+where
+    T: crate::sample::Keyed,
+{
     fn drop(&mut self) {
         let result = ffi::dds_delete(self.inner);
         debug_assert!(result.is_ok());

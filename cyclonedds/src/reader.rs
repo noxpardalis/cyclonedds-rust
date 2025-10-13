@@ -5,12 +5,18 @@ use crate::internal::ffi;
 
 ///
 #[derive(Debug)]
-pub struct Reader<'domain, 'participant, 'topic, T> {
+pub struct Reader<'domain, 'participant, 'topic, T>
+where
+    T: crate::sample::Keyed,
+{
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
     phantom_topic: std::marker::PhantomData<&'topic Topic<'domain, 'participant, T>>,
 }
 
-impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T> {
+impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T>
+where
+    T: crate::sample::Keyed,
+{
     ///
     pub fn new<P>(participant_or_subscriber: P, topic: &'t Topic<'d, 'p, T>) -> Result<Self>
     where
@@ -48,7 +54,7 @@ impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T> {
     }
 
     ///
-    pub fn take(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn take(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -56,7 +62,7 @@ impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T> {
     }
 
     ///
-    pub fn read(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn read(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -64,7 +70,7 @@ impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T> {
     }
 
     ///
-    pub fn peek(&self) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+    pub fn peek(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
     where
         T: std::clone::Clone,
     {
@@ -117,7 +123,10 @@ impl<'d, 'p, 't, T> Reader<'d, 'p, 't, T> {
     }
 }
 
-impl<T> Drop for Reader<'_, '_, '_, T> {
+impl<T> Drop for Reader<'_, '_, '_, T>
+where
+    T: crate::sample::Keyed,
+{
     fn drop(&mut self) {
         let result = ffi::dds_delete(self.inner);
         debug_assert!(result.is_ok());

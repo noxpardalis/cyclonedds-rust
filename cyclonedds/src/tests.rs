@@ -16,6 +16,18 @@ pub mod topic {
         pub message: String,
     }
 
+    impl crate::sample::Keyed for Data {
+        type Key = std::convert::Infallible;
+
+        fn from_key(_: &Self::Key) -> Self {
+            Default::default()
+        }
+
+        fn into_key(self: Self) -> Self::Key {
+            unreachable!()
+        }
+    }
+
     pub fn unique_name() -> String {
         let uuid = Uuid::new_v4();
         uuid.to_string()

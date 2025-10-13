@@ -523,10 +523,9 @@ unsafe extern "C" fn dds_read_with_collector_callback<T>(
     serdata: *mut cyclonedds_sys::ddsi_serdata,
 ) -> cyclonedds_sys::dds_return_t
 where
-    T: std::clone::Clone,
+    T: std::clone::Clone + crate::sample::Keyed,
 {
-    let buffer =
-        unsafe { &mut *(arg as *mut Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>) };
+    let buffer = unsafe { &mut *(arg as *mut Vec<crate::sample::SampleOrKey<T>>) };
 
     let info = unsafe { &*info };
     let mut _sertype = std::mem::ManuallyDrop::new(unsafe {
@@ -539,12 +538,26 @@ where
     let info: crate::sample::Info = info.into();
 
     if !info.valid {
-        buffer.push(Err(info));
+        match serdata.kind() {
+            // TODO validate what to do here?
+
+            // Do nothing if the kind is empty.
+            crate::internal::serdata::Kind::Empty => (),
+            // If it's a key push a key constructed from the default
+            // construction.
+            crate::internal::serdata::Kind::Key => buffer.push(
+                crate::sample::SampleOrKey::new_key(T::into_key(T::default()), info),
+            ),
+            // If it's data push a default construction.
+            crate::internal::serdata::Kind::Data => {
+                buffer.push(crate::sample::SampleOrKey::new_sample(T::default(), info))
+            }
+        }
         cyclonedds_sys::DDS_RETCODE_OK as _
     } else if let Some(sample) = serdata.sample() {
         let sample = sample.clone();
         let info = info.into();
-        buffer.push(Ok(crate::sample::Sample { sample, info }));
+        buffer.push(crate::sample::SampleOrKey::new_sample(sample, info));
         cyclonedds_sys::DDS_RETCODE_OK as _
     } else {
         cyclonedds_sys::DDS_RETCODE_PRECONDITION_NOT_MET
@@ -583,9 +596,9 @@ mod read_operation {
 #[inline]
 fn dds_read_take_peek<T, RO>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
-) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+) -> Result<Vec<crate::sample::SampleOrKey<T>>>
 where
-    T: std::clone::Clone,
+    T: crate::sample::Keyed + std::clone::Clone,
     RO: read_operation::ReadOperation,
 {
     let mut samples = Vec::new();
@@ -613,9 +626,9 @@ where
 ///
 pub fn dds_take<T>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
-) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+) -> Result<Vec<crate::sample::SampleOrKey<T>>>
 where
-    T: std::clone::Clone,
+    T: std::clone::Clone + crate::sample::Keyed,
 {
     dds_read_take_peek::<T, read_operation::Take>(reader_or_condition)
 }
@@ -623,9 +636,9 @@ where
 ///
 pub fn dds_read<T>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
-) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+) -> Result<Vec<crate::sample::SampleOrKey<T>>>
 where
-    T: std::clone::Clone,
+    T: std::clone::Clone + crate::sample::Keyed,
 {
     dds_read_take_peek::<T, read_operation::Read>(reader_or_condition)
 }
@@ -633,9 +646,9 @@ where
 ///
 pub fn dds_peek<T>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
-) -> Result<Vec<Result<crate::sample::Sample<T>, crate::sample::Info>>>
+) -> Result<Vec<crate::sample::SampleOrKey<T>>>
 where
-    T: std::clone::Clone,
+    T: std::clone::Clone + crate::sample::Keyed,
 {
     dds_read_take_peek::<T, read_operation::Peek>(reader_or_condition)
 }
