@@ -1,3 +1,4 @@
+mod cdr_bounds;
 mod domain;
 mod duration;
 pub mod entity;
@@ -19,6 +20,7 @@ mod topic;
 mod waitset;
 mod writer;
 
+pub use cdr_bounds::{CdrBounds, CdrSize};
 pub use domain::Domain;
 pub use duration::Duration;
 pub use error::{Error, Result};
@@ -33,6 +35,7 @@ pub use qos::QoS;
 pub use query_condition::QueryCondition;
 pub use read_condition::ReadCondition;
 pub use reader::Reader;
+pub use sample::Topicable;
 pub use state::State;
 pub use status::Status;
 pub use subscriber::ParticipantOrSubscriber;

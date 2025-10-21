@@ -34,7 +34,7 @@ pub struct SubscriberListener {
 #[derive(Debug)]
 pub struct ReaderListener<T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     sample_lost: Option<fn(&crate::Reader<T>, SampleLost)>,
     data_available: Option<fn(&crate::Reader<T>)>,
@@ -56,7 +56,7 @@ pub struct PublisherListener {
 #[derive(Debug)]
 pub struct WriterListener<T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     liveliness_lost: Option<fn(&crate::Writer<T>, LivelinessLost)>,
     offered_deadline_missed: Option<fn(&crate::Writer<T>, OfferedDeadlineMissed)>,
@@ -101,7 +101,7 @@ impl Default for PublisherListener {
 
 impl<T> Default for ReaderListener<T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     fn default() -> Self {
         Self {
@@ -118,7 +118,7 @@ where
 
 impl<T> Default for WriterListener<T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     fn default() -> Self {
         Self {
@@ -174,11 +174,7 @@ impl Listener {
 
 impl<T> TopicListener<T>
 where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug,
+    T: crate::Topicable,
 {
     ///
     pub fn new() -> Self {
@@ -279,12 +275,7 @@ impl PublisherListener {
 
 impl<T> ReaderListener<T>
 where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     ///
     pub fn new() -> Self {
@@ -383,12 +374,7 @@ where
 
 impl<T> WriterListener<T>
 where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     ///
     pub fn new() -> Self {
@@ -457,7 +443,7 @@ where
 
 impl<T> AsRef<ReaderListener<T>> for ReaderListener<T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     fn as_ref(&self) -> &ReaderListener<T> {
         self
@@ -465,7 +451,7 @@ where
 }
 impl<T> AsRef<WriterListener<T>> for WriterListener<T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     fn as_ref(&self) -> &WriterListener<T> {
         self
@@ -567,7 +553,7 @@ mod tests {
 
     fn receive_reader_listener<L, T>(listener: L)
     where
-        T: crate::sample::Keyed,
+        T: crate::Topicable,
         L: AsRef<ReaderListener<T>>,
     {
         let _ = listener.as_ref();
@@ -576,7 +562,7 @@ mod tests {
 
     fn receive_writer_listener<L, T>(listener: L)
     where
-        T: crate::sample::Keyed,
+        T: crate::Topicable,
         L: AsRef<WriterListener<T>>,
     {
         let _ = listener.as_ref();

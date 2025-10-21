@@ -19,3 +19,4 @@
 pub mod ffi;
 pub mod serdata;
 pub mod sertype;
+pub mod traits;

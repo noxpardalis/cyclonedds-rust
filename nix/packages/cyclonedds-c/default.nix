@@ -11,4 +11,5 @@ pkgs.stdenv.mkDerivation {
     ninja
   ];
   cmakeFlags = [ "-DEXPORT_ALL_SYMBOLS=true" ];
+  patches = [ ./memory-leak.patch ];
 }

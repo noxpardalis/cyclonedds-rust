@@ -84,13 +84,13 @@ macro_rules! impl_entity {
 }
 
 impl_entity!(crate::Participant<'_>);
-impl_entity!(crate::Topic<'_, '_, T> where T: crate::sample::Keyed);
+impl_entity!(crate::Topic<'_, '_, T> where T: crate::Topicable);
 impl_entity!(crate::Publisher<'_, '_>);
 impl_entity!(crate::Subscriber<'_, '_>);
-impl_entity!(crate::Reader<'_, '_, '_, T> where T: crate::sample::Keyed);
-impl_entity!(crate::Writer<'_, '_, '_, T> where T: crate::sample::Keyed);
-impl_entity!(crate::ReadCondition<'_, '_, '_, '_, T> where T: crate::sample::Keyed);
-impl_entity!(crate::QueryCondition<'_, '_, '_, '_, T, F> where T: crate::sample::Keyed, F: Fn(&T) -> bool);
+impl_entity!(crate::Reader<'_, '_, '_, T> where T: crate::Topicable);
+impl_entity!(crate::Writer<'_, '_, '_, T> where T: crate::Topicable);
+impl_entity!(crate::ReadCondition<'_, '_, '_, '_, T> where T: crate::Topicable);
+impl_entity!(crate::QueryCondition<'_, '_, '_, '_, T, F> where T: crate::Topicable, F: Fn(&T) -> bool);
 impl_entity!(crate::GuardCondition<'_>);
 impl_entity!(crate::WaitSet<'_, '_, '_, A> where A);
 
@@ -108,8 +108,8 @@ mod tests {
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
         let publisher = crate::Publisher::new(&participant).unwrap();
         let subscriber = crate::Subscriber::new(&participant).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
-        let writer = crate::Writer::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
+        let writer = crate::Writer::new(&topic).unwrap();
         let read_condition = crate::ReadCondition::new(&reader, crate::state::sample::Any).unwrap();
         let query_condition =
             crate::QueryCondition::new(&reader, crate::State::empty(), |_| true).unwrap();
@@ -198,7 +198,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
 
         let result = reader.instance_handle();
         assert!(result.is_ok());

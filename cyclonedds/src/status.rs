@@ -153,7 +153,10 @@ impl From<cyclonedds_sys::dds_qos_policy_id_t> for QoSPolicyId {
             cyclonedds_sys::dds_qos_policy_id_DDS_DATA_REPRESENTATION_QOS_POLICY_ID => {
                 Self::DataRepresentation
             }
-            value => unimplemented!("unsupported value: {value} in conversion to QoSPolicyId"),
+            value => unimplemented!(
+                "unsupported value: {value} in conversion to {}",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 }
@@ -231,8 +234,7 @@ impl From<cyclonedds_sys::dds_sample_rejected_status_kind> for SampleRejectedRea
             cyclonedds_sys::dds_sample_rejected_status_kind_DDS_REJECTED_BY_INSTANCES_LIMIT => Self::RejectedByInstancesLimit,
             cyclonedds_sys::dds_sample_rejected_status_kind_DDS_REJECTED_BY_SAMPLES_LIMIT => Self::RejectedBySamplesLimit,
             cyclonedds_sys::dds_sample_rejected_status_kind_DDS_REJECTED_BY_SAMPLES_PER_INSTANCE_LIMIT => Self::RejectedBySamplesPerInstanceLimit,
-            value => unimplemented!("unsupported value: {value} in conversion to SampleRejectedReason")
-
+            value => unimplemented!("unsupported value: {value} in conversion to {}", std::any::type_name::<Self>())
         }
     }
 }

@@ -1,0 +1,23 @@
+diff --git i/src/ddsrt/src/cdtors.c w/src/ddsrt/src/cdtors.c
+index 471675e0..dc264b33 100644
+--- i/src/ddsrt/src/cdtors.c
++++ w/src/ddsrt/src/cdtors.c
+@@ -14,6 +14,7 @@
+ #include "dds/ddsrt/time.h"
+ #include "dds/ddsrt/random.h"
+ #include "dds/ddsrt/misc.h"
++#include "dds/ddsrt/threads.h"
+ 
+ #if _WIN32
+ /* Sockets API initialization is only necessary on Microsoft Windows. The
+@@ -130,6 +133,10 @@ void ddsrt_fini (void)
+     ddsrt_fini_impl ();
+     ddsrt_atomic_dec32 (&init_status);
+   }
++
++  if ((v1 & INIT_COUNT_MASK) == 1) {
++    ddsrt_thread_cleanup_pop(1);
++  }
+ }
+ 
+ ddsrt_mutex_t *ddsrt_get_singleton_mutex(void)

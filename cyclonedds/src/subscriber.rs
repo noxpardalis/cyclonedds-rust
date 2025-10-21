@@ -10,6 +10,46 @@ pub struct Subscriber<'domain, 'participant> {
     phantom: std::marker::PhantomData<&'participant Participant<'domain>>,
 }
 
+pub struct SubscriberBuilder<'domain, 'participant, 'qos> {
+    participant: &'participant Participant<'domain>,
+    qos: Option<&'qos crate::QoS>,
+    listener: Option<crate::SubscriberListener>,
+}
+
+impl<'d, 'p, 'q> SubscriberBuilder<'d, 'p, 'q> {
+    pub fn new(participant: &'p Participant<'d>) -> Self {
+        Self {
+            participant,
+            qos: None,
+            listener: None,
+        }
+    }
+
+    pub fn with_qos(mut self, qos: &'q crate::QoS) -> Self {
+        self.qos = Some(qos);
+        self
+    }
+
+    pub fn with_listener(mut self, listener: crate::SubscriberListener) -> Self {
+        self.listener = Some(listener);
+        self
+    }
+
+    pub fn build(self) -> Result<Subscriber<'d, 'p>> {
+        Ok(Subscriber {
+            inner: ffi::dds_create_subscriber(
+                self.participant.inner,
+                self.qos.map(|qos| &qos.inner),
+                self.listener
+                    .map(|listener| listener.as_ffi())
+                    .transpose()?
+                    .as_ref(),
+            )?,
+            phantom: std::marker::PhantomData,
+        })
+    }
+}
+
 ///
 #[derive(Debug)]
 pub enum ParticipantOrSubscriber<'d, 'p> {
@@ -43,18 +83,12 @@ impl ParticipantOrSubscriber<'_, '_> {
 impl<'d, 'p> Subscriber<'d, 'p> {
     ///
     pub fn new(participant: &'p Participant<'d>) -> Result<Self> {
-        Ok(Self {
-            inner: ffi::dds_create_subscriber(participant.inner, None, None)?,
-            phantom: std::marker::PhantomData,
-        })
+        Self::builder(participant).build()
     }
 
     ///
-    pub fn new_with_qos(participant: &'p Participant<'d>, qos: &crate::qos::QoS) -> Result<Self> {
-        Ok(Self {
-            inner: ffi::dds_create_subscriber(participant.inner, Some(&qos.inner), None)?,
-            phantom: std::marker::PhantomData,
-        })
+    pub fn builder<'q>(participant: &'p Participant<'d>) -> SubscriberBuilder<'d, 'p, 'q> {
+        SubscriberBuilder::new(participant)
     }
 
     ///
@@ -112,7 +146,10 @@ mod tests {
         let qos = crate::QoS::new();
         let participant = Participant::new(&domain).unwrap();
         let _ = Subscriber::new(&participant).unwrap();
-        let _ = Subscriber::new_with_qos(&participant, &qos).unwrap();
+        let _ = Subscriber::builder(&participant)
+            .with_qos(&qos)
+            .build()
+            .unwrap();
     }
 
     #[test]
@@ -125,7 +162,10 @@ mod tests {
         participant.inner = 0;
         let result = Subscriber::new(&participant).unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
-        let result = Subscriber::new_with_qos(&participant, &qos).unwrap_err();
+        let result = Subscriber::builder(&participant)
+            .with_qos(&qos)
+            .build()
+            .unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
         participant.inner = participant_id;
     }

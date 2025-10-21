@@ -57,17 +57,13 @@ pub fn dds_listener_set_inconsistent_topic<T>(
     listener: &mut Listener,
     callback: fn(&crate::Topic<T>, crate::status::InconsistentTopic),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_inconsistent_topic_arg(
             listener.inner.as_mut(),
             Some(on_inconsistent_topic_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -80,18 +76,13 @@ pub fn dds_listener_set_liveliness_lost<T>(
     listener: &mut Listener,
     callback: fn(&crate::Writer<T>, crate::status::LivelinessLost),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_liveliness_lost_arg(
             listener.inner.as_mut(),
             Some(on_liveliness_lost_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -104,18 +95,13 @@ pub fn dds_listener_set_offered_deadline_missed<T>(
     listener: &mut Listener,
     callback: fn(&crate::Writer<T>, crate::status::OfferedDeadlineMissed),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_offered_deadline_missed_arg(
             listener.inner.as_mut(),
             Some(on_offered_deadline_missed_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -128,18 +114,13 @@ pub fn dds_listener_set_offered_incompatible_qos<T>(
     listener: &mut Listener,
     callback: fn(&crate::Writer<T>, crate::status::OfferedIncompatibleQoS),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_offered_incompatible_qos_arg(
             listener.inner.as_mut(),
             Some(on_offered_incompatible_qos_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -152,18 +133,13 @@ pub fn dds_listener_set_publication_matched<T>(
     listener: &mut Listener,
     callback: fn(&crate::Writer<T>, crate::status::PublicationMatched),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_publication_matched_arg(
             listener.inner.as_mut(),
             Some(on_publication_matched_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -176,18 +152,13 @@ pub fn dds_listener_set_sample_lost<T>(
     listener: &mut Listener,
     callback: fn(&crate::Reader<T>, crate::status::SampleLost),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_sample_lost_arg(
             listener.inner.as_mut(),
             Some(on_sample_lost_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -198,18 +169,13 @@ pub fn dds_listener_set_sample_lost<T>(
 ///
 pub fn dds_listener_set_data_available<T>(listener: &mut Listener, callback: fn(&crate::Reader<T>))
 where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_data_available_arg(
             listener.inner.as_mut(),
             Some(on_data_available_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -222,18 +188,13 @@ pub fn dds_listener_set_sample_rejected<T>(
     listener: &mut Listener,
     callback: fn(&crate::Reader<T>, crate::status::SampleRejected),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_sample_rejected_arg(
             listener.inner.as_mut(),
             Some(on_sample_rejected_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -246,18 +207,13 @@ pub fn dds_listener_set_liveliness_changed<T>(
     listener: &mut Listener,
     callback: fn(&crate::Reader<T>, crate::status::LivelinessChanged),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_liveliness_changed_arg(
             listener.inner.as_mut(),
             Some(on_liveliness_changed_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -270,18 +226,13 @@ pub fn dds_listener_set_requested_deadline_missed<T>(
     listener: &mut Listener,
     callback: fn(&crate::Reader<T>, crate::status::RequestedDeadlineMissed),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_requested_deadline_missed_arg(
             listener.inner.as_mut(),
             Some(on_requested_deadline_missed_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -294,18 +245,13 @@ pub fn dds_listener_set_requested_incompatible_qos<T>(
     listener: &mut Listener,
     callback: fn(&crate::Reader<T>, crate::status::RequestedIncompatibleQoS),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_requested_incompatible_qos_arg(
             listener.inner.as_mut(),
             Some(on_requested_incompatible_qos_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -318,18 +264,13 @@ pub fn dds_listener_set_subscription_matched<T>(
     listener: &mut Listener,
     callback: fn(&crate::Reader<T>, crate::status::SubscriptionMatched),
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     unsafe {
         cyclonedds_sys::dds_lset_subscription_matched_arg(
             listener.inner.as_mut(),
             Some(on_subscription_matched_shim::<T>),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -343,7 +284,7 @@ pub fn dds_listener_set_data_on_readers(listener: &mut Listener, callback: fn(&c
         cyclonedds_sys::dds_lset_data_on_readers_arg(
             listener.inner.as_mut(),
             Some(on_data_on_readers_shim),
-            dbg!(callback as *mut std::ffi::c_void),
+            callback as *mut std::ffi::c_void,
             true,
         )
     }
@@ -356,11 +297,7 @@ unsafe extern "C" fn on_inconsistent_topic_shim<T>(
     status: cyclonedds_sys::dds_inconsistent_topic_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug,
+    T: crate::Topicable,
 {
     let topic = crate::Topic::from_existing(topic);
     let status = status.into();
@@ -374,12 +311,7 @@ unsafe extern "C" fn on_liveliness_lost_shim<T>(
     status: cyclonedds_sys::dds_liveliness_lost_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let writer = crate::Writer::from_existing(writer);
     let status = status.into();
@@ -393,12 +325,7 @@ unsafe extern "C" fn on_offered_deadline_missed_shim<T>(
     status: cyclonedds_sys::dds_offered_deadline_missed_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let writer = crate::Writer::from_existing(writer);
     let status = status.into();
@@ -412,12 +339,7 @@ unsafe extern "C" fn on_offered_incompatible_qos_shim<T>(
     status: cyclonedds_sys::dds_offered_incompatible_qos_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let writer = crate::Writer::from_existing(writer);
     let status = status.into();
@@ -431,12 +353,7 @@ unsafe extern "C" fn on_publication_matched_shim<T>(
     status: cyclonedds_sys::dds_publication_matched_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let writer = crate::Writer::from_existing(writer);
     let status = status.into();
@@ -450,7 +367,7 @@ unsafe extern "C" fn on_sample_lost_shim<T>(
     status: cyclonedds_sys::dds_sample_lost_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
@@ -463,7 +380,7 @@ unsafe extern "C" fn on_data_available_shim<T>(
     reader: cyclonedds_sys::dds_entity_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let reader = crate::Reader::from_existing(reader);
     let callback: fn(&crate::Reader<T>) = unsafe { std::mem::transmute(arg) };
@@ -475,7 +392,7 @@ unsafe extern "C" fn on_sample_rejected_shim<T>(
     status: cyclonedds_sys::dds_sample_rejected_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
@@ -489,7 +406,7 @@ unsafe extern "C" fn on_liveliness_changed_shim<T>(
     status: cyclonedds_sys::dds_liveliness_changed_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
@@ -503,7 +420,7 @@ unsafe extern "C" fn on_requested_deadline_missed_shim<T>(
     status: cyclonedds_sys::dds_requested_deadline_missed_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
@@ -517,7 +434,7 @@ unsafe extern "C" fn on_requested_incompatible_qos_shim<T>(
     status: cyclonedds_sys::dds_requested_incompatible_qos_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();
@@ -531,7 +448,7 @@ unsafe extern "C" fn on_subscription_matched_shim<T>(
     status: cyclonedds_sys::dds_subscription_matched_status_t,
     arg: *mut std::ffi::c_void,
 ) where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let reader = crate::Reader::from_existing(reader);
     let status = status.into();

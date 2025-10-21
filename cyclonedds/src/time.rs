@@ -16,6 +16,25 @@ impl Time {
     }
 }
 
+impl TryFrom<std::time::SystemTime> for Time {
+    type Error = crate::Error;
+
+    fn try_from(value: std::time::SystemTime) -> Result<Self, Self::Error> {
+        let value = value
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .map_err(|_| crate::Error::BadParameter)?;
+
+        let inner = cyclonedds_sys::dds_time_t::try_from(value.as_nanos())
+            .map_err(|_| crate::Error::BadParameter)?;
+
+        if inner == Self::NEVER.inner {
+            Err(crate::Error::BadParameter)
+        } else {
+            Ok(Self { inner })
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

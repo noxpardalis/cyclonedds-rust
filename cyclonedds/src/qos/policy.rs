@@ -9,6 +9,13 @@ pub struct UserData {
     pub value: Vec<u8>,
 }
 
+impl UserData {
+    #[inline]
+    pub(crate) fn as_ffi(&self) -> &[u8] {
+        &self.value
+    }
+}
+
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TopicData {
@@ -16,11 +23,25 @@ pub struct TopicData {
     pub value: Vec<u8>,
 }
 
+impl TopicData {
+    #[inline]
+    pub(crate) fn as_ffi(&self) -> &[u8] {
+        &self.value
+    }
+}
+
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GroupData {
     ///
     pub value: Vec<u8>,
+}
+
+impl GroupData {
+    #[inline]
+    pub(crate) fn as_ffi(&self) -> &[u8] {
+        &self.value
+    }
 }
 
 ///
@@ -515,8 +536,17 @@ impl ReaderDataLifecycle {
 //     pub representations: std::collections::HashSet<DataRepresentationKind>,
 // }
 
-// ///
-// pub struct EntityName {
-//     ///
-//     pub name: String
-// }
+///
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EntityName {
+    ///
+    pub name: String,
+}
+
+impl EntityName {
+    #[inline]
+    pub(crate) fn as_ffi(&self) -> std::ffi::CString {
+        std::ffi::CString::new(self.name.as_str())
+            .expect("TODO should this be moved to the construction of the name policy or deferred to the set_qos + construction of the objects with the QoS?")
+    }
+}

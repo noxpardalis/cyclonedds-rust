@@ -29,7 +29,11 @@ impl TryFrom<std::time::Duration> for Duration {
         let inner = cyclonedds_sys::dds_duration_t::try_from(value.as_nanos())
             .map_err(|_| crate::Error::BadParameter)?;
 
-        Ok(Self { inner })
+        if inner == Self::INFINITE.inner {
+            Err(crate::Error::BadParameter)
+        } else {
+            Ok(Self { inner })
+        }
     }
 }
 

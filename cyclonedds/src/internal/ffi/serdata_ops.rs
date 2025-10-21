@@ -3,6 +3,7 @@
 
 use crate::internal::serdata::Serdata;
 use crate::internal::sertype::Sertype;
+use crate::{CdrBounds, CdrSize};
 use std::io::Write;
 
 /// The size of the RTPS header in bytes.
@@ -15,34 +16,32 @@ pub const DDSI_RTPS_HEADER_SIZE: usize = 4;
 pub unsafe extern "C" fn eqkey<T>(
     lhs: *const cyclonedds_sys::ddsi_serdata,
     rhs: *const cyclonedds_sys::ddsi_serdata,
-) -> bool {
-    let lhs = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(lhs as *mut Serdata<T>) });
-    let rhs = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(rhs as *mut Serdata<T>) });
+) -> bool
+where
+    T: crate::Topicable,
+{
+    let mut lhs = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(lhs as *mut Serdata<T>) });
+    let mut rhs = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(rhs as *mut Serdata<T>) });
 
-    lhs.key == rhs.key
+    lhs.key() == rhs.key()
 }
 
 /// Returns the serialized size (in bytes) of the sample contained in the given
 /// `Serdata` + the size of the DDSI RTPS header.
 ///
-/// If no sample is present, returns `0` + size of the DDSI RTPS header.
-///
 /// ## Safety
 /// The `serdata`  must be a non-null pointer to a fully-initialized [`Serdata`].
 pub unsafe extern "C" fn get_size<T>(serdata: *const cyclonedds_sys::ddsi_serdata) -> u32
 where
-    T: serde::ser::Serialize + std::clone::Clone,
+    T: crate::Topicable,
 {
     let mut serdata =
         std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
 
-    let serialized_size = if let Some(sample) = serdata.sample() {
-        cdr_encoding::to_vec::<_, byteorder::NativeEndian>(sample)
-            .map_or(0, |bytes| bytes.len() as u32)
-    } else {
-        0
-    };
-    serialized_size + DDSI_RTPS_HEADER_SIZE as u32
+    serdata
+        .serialized()
+        .expect("unable to serialize data") // TODO pass this back out somehow?
+        .len() as u32
 }
 
 #[inline]
@@ -108,34 +107,37 @@ pub unsafe extern "C" fn from_ser<T>(
     size: usize,
 ) -> *mut cyclonedds_sys::ddsi_serdata
 where
-    T: serde::de::DeserializeOwned,
+    T: crate::Topicable,
 {
     let sertype = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
 
     if let Ok(kind) = crate::internal::serdata::Kind::try_from(kind) {
-        let mut serdata = Serdata::new(sertype.as_ref(), kind);
+        let mut buffer = vec![0; size];
 
-        let buffer = serdata.serialized_sample.get_or_insert(vec![0; size]);
-        buffer.resize(size, 0);
-
-        if unsafe { copy_from_fragment(buffer, fragment_chain, size) }.is_ok() {
-            if let Ok((data, _)) = cdr_encoding::from_bytes::<T, byteorder::NativeEndian>(
-                &buffer[DDSI_RTPS_HEADER_SIZE..],
-            ) {
-                if let Some(sample) = &mut serdata.sample {
-                    let sample = std::sync::Arc::get_mut(sample).unwrap();
-                    *sample = data;
-                } else {
-                    serdata.sample = Some(std::sync::Arc::new(data));
+        if unsafe { copy_from_fragment(&mut buffer, fragment_chain, size) }.is_ok() {
+            match kind {
+                crate::internal::serdata::Kind::Key => {
+                    if let Ok((key, _)) = cdr_encoding::from_bytes::<T::Key, byteorder::NativeEndian>(
+                        &buffer[DDSI_RTPS_HEADER_SIZE..],
+                    ) {
+                        let key = crate::internal::serdata::SampleOrKey::new_key(key);
+                        let serdata = crate::internal::serdata::Serdata::new(&sertype, key);
+                        Box::into_raw(serdata) as *mut _
+                    } else {
+                        std::ptr::null_mut()
+                    }
                 }
-                // if serdata.populate_key().is_ok() {
-                // serdata.populate_hash();
-                Box::into_raw(serdata) as *mut _
-            // } else {
-            // std::ptr::null_mut()
-            // }
-            } else {
-                std::ptr::null_mut()
+                crate::internal::serdata::Kind::Data => {
+                    if let Ok((data, _)) = cdr_encoding::from_bytes::<T, byteorder::NativeEndian>(
+                        &buffer[DDSI_RTPS_HEADER_SIZE..],
+                    ) {
+                        let sample = crate::internal::serdata::SampleOrKey::new_sample(data);
+                        let serdata = crate::internal::serdata::Serdata::new(&sertype, sample);
+                        Box::into_raw(serdata) as *mut _
+                    } else {
+                        std::ptr::null_mut()
+                    }
+                }
             }
         } else {
             std::ptr::null_mut()
@@ -143,24 +145,6 @@ where
     } else {
         std::ptr::null_mut()
     }
-
-    // auto d = new ddscxx_serdata<T>(type, kind);
-    // d->resize(size);
-    // auto cursor = static_cast<unsigned char*>(d->data());
-    // org::eclipse::cyclone::core::cdr::serdata_from_ser_copyin_fragchain (cursor, fragchain, size);
-
-    // if (d->getT())
-    // {
-    //   d->key_md5_hashed() = to_key(*d->getT(), d->key());
-    //   d->populate_hash();
-    // }
-    // else
-    // {
-    //   delete d;
-    //   d = nullptr;
-    // }
-
-    // return d;
 }
 
 /// Construct a [`Serdata`] from a serialized `iovec` and return it as a raw pointer.
@@ -181,13 +165,11 @@ pub unsafe extern "C" fn from_ser_iov<T>(
     size: usize,
 ) -> *mut cyclonedds_sys::ddsi_serdata
 where
-    T: std::clone::Clone + serde::de::DeserializeOwned,
+    T: crate::Topicable,
 {
     let sertype = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
 
     if let Ok(kind) = crate::internal::serdata::Kind::try_from(kind) {
-        let mut serdata = Serdata::new(sertype.as_ref(), kind);
-
         let mut serialized_sample: Vec<u8> = Vec::with_capacity(size);
         // NOTE: `ddsrt_msg_iovlen_t` might not be a usize on all platforms and so the clippy lint
         // warning about unnecessary casts should be suppressed.
@@ -208,15 +190,32 @@ where
             serialized_sample.extend_from_slice(container);
             offset += container_len;
         }
-        if serdata.sample.is_none()
-            && let Ok((sample, _length)) =
-                cdr_encoding::from_bytes::<_, byteorder::NativeEndian>(&serialized_sample)
-        {
-            serdata.sample.replace(std::sync::Arc::new(sample));
+        match kind {
+            crate::internal::serdata::Kind::Key => {
+                if let Ok((key, _length)) =
+                    cdr_encoding::from_bytes::<_, byteorder::NativeEndian>(&serialized_sample)
+                {
+                    let key = crate::internal::serdata::SampleOrKey::new_key(key);
+                    let serdata = Serdata::new(sertype.as_ref(), key);
+                    serdata.serialized_sample.set(serialized_sample).unwrap();
+                    Box::into_raw(serdata) as *mut _
+                } else {
+                    std::ptr::null_mut()
+                }
+            }
+            crate::internal::serdata::Kind::Data => {
+                if let Ok((sample, _length)) =
+                    cdr_encoding::from_bytes::<_, byteorder::NativeEndian>(&serialized_sample)
+                {
+                    let sample = crate::internal::serdata::SampleOrKey::new_sample(sample);
+                    let serdata = Serdata::new(sertype.as_ref(), sample);
+                    serdata.serialized_sample.set(serialized_sample).unwrap();
+                    Box::into_raw(serdata) as *mut _
+                } else {
+                    std::ptr::null_mut()
+                }
+            }
         }
-        serdata.serialized_sample = Some(serialized_sample);
-
-        Box::into_raw(serdata) as *mut _
     } else {
         std::ptr::null_mut()
     }
@@ -227,12 +226,32 @@ where
 pub unsafe extern "C" fn from_keyhash<T>(
     sertype: *const cyclonedds_sys::ddsi_sertype,
     keyhash: *const cyclonedds_sys::ddsi_keyhash,
-) -> *mut cyclonedds_sys::ddsi_serdata {
-    let args = (sertype, keyhash);
-    todo!(
-        "serdata_ops::from_keyhash<{}>({args:?})",
-        std::any::type_name::<T>()
-    )
+) -> *mut cyclonedds_sys::ddsi_serdata
+where
+    T: crate::Topicable,
+{
+    let sertype = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+    let keyhash = unsafe { &*keyhash };
+
+    let max_possible_serialized_size = T::Key::max_serialized_cdr_size();
+
+    // TODO where to get the force md5? from the sertype?
+    let force_md5 = false;
+    if force_md5 || max_possible_serialized_size > CdrSize::Bounded(16) {
+        // The key hash is based on MD5 and so can't be reconstructed into a key.
+        std::ptr::null_mut()
+    } else {
+        // The key hash is just the big-endian CDR serialized form of the key.
+        if let Ok((key, _)) = cdr_encoding::from_bytes::<_, byteorder::BigEndian>(&keyhash.value) {
+            let serdata = Serdata::new(
+                &sertype,
+                crate::internal::serdata::SampleOrKey::<T>::new_key(key),
+            );
+            Box::into_raw(serdata) as *mut _
+        } else {
+            std::ptr::null_mut()
+        }
+    }
 }
 
 /// Constructs a [`Serdata`] from a sample pointer, given a serialization kind.
@@ -245,34 +264,33 @@ pub unsafe extern "C" fn from_sample<T>(
     sample: *const std::ffi::c_void,
 ) -> *mut cyclonedds_sys::ddsi_serdata
 where
-    T: std::clone::Clone,
+    T: crate::Topicable,
 {
     match crate::internal::serdata::Kind::try_from(kind) {
-        Ok(kind @ crate::internal::serdata::Kind::Data) => {
+        Ok(crate::internal::serdata::Kind::Data) => {
             let sample = unsafe { &*(sample as *const T) };
 
             let sertype =
                 std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
 
-            let mut serdata = Serdata::new(sertype.as_ref(), kind);
+            let sample = crate::internal::serdata::SampleOrKey::new_sample(sample.clone());
+            let serdata = Serdata::new(sertype.as_ref(), sample);
 
-            serdata.sample.replace(std::sync::Arc::new(sample.clone()));
             Box::into_raw(serdata) as *mut _
         }
-        Ok(kind @ crate::internal::serdata::Kind::Key) => todo!("{kind:?}"),
+        Ok(crate::internal::serdata::Kind::Key) => {
+            let key = unsafe { &*(sample as *const T::Key) };
+
+            let sertype =
+                std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+
+            let key = crate::internal::serdata::SampleOrKey::new_key(key.clone());
+            let serdata = Serdata::new(sertype.as_ref(), key);
+
+            Box::into_raw(serdata) as *mut _
+        }
         _ => std::ptr::null_mut(),
     }
-    // if kind is key then `get_serialized_size` with key_mode::unsorted must be true
-    // if kind is not key then `get_serialized_size` with key_mode::not_key must be true
-
-    // add 4 to the header size
-    // tell the serdata to resize to the size
-    //
-    //
-    // serialize the data into the serdata
-    // set the key hash
-    // set the T
-    // populate the hash
 }
 
 /// TODO Unimplemented
@@ -304,35 +322,17 @@ pub unsafe extern "C" fn to_ser_ref<T>(
     container: *mut cyclonedds_sys::iovec,
 ) -> *mut cyclonedds_sys::ddsi_serdata
 where
-    T: std::clone::Clone + serde::ser::Serialize,
+    T: crate::Topicable,
 {
     let mut serdata =
         std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
     let container = unsafe { &mut *container };
 
-    if serdata.serialized_sample.is_none()
-        && let Some(sample) = serdata.sample()
-    {
-        let mut serialized_sample = vec![0; size];
-        serialized_sample.extend_from_slice(&vec![0; DDSI_RTPS_HEADER_SIZE]);
+    let serialized = serdata.serialized_with_size(size);
 
-        if cdr_encoding::to_writer::<_, byteorder::NativeEndian, _>(
-            &mut serialized_sample[DDSI_RTPS_HEADER_SIZE..],
-            sample,
-        )
-        .is_ok()
-        {
-            serdata.serialized_sample = Some(serialized_sample);
-        }
-    }
-
-    if let Some(serialized_sample) = &serdata.serialized_sample {
-        container.iov_base = serialized_sample[offset..].as_ptr() as *mut _;
-        container.iov_len = serialized_sample.len();
-        unsafe { cyclonedds_sys::ddsi_serdata_ref(&serdata.inner) }
-    } else {
-        std::ptr::null_mut()
-    }
+    container.iov_base = serialized[offset..].as_ptr() as *mut _;
+    container.iov_len = serialized.len();
+    unsafe { cyclonedds_sys::ddsi_serdata_ref(&serdata.inner) }
 }
 
 /// Relinquish the reference handed out by [`to_ser_ref`].
@@ -345,7 +345,9 @@ where
 pub unsafe extern "C" fn to_ser_unref<T>(
     serdata: *mut cyclonedds_sys::ddsi_serdata,
     _: *const cyclonedds_sys::iovec,
-) {
+) where
+    T: crate::Topicable,
+{
     let mut serdata =
         std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
 
@@ -366,20 +368,28 @@ pub unsafe extern "C" fn to_sample<T>(
     _buffer_limit: *mut std::ffi::c_void,
 ) -> bool
 where
-    T: std::clone::Clone,
+    T: crate::Topicable,
 {
     let mut serdata =
         std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
 
-    if let Some(data) = serdata.sample() {
-        let sample = sample as *mut T;
-        unsafe {
-            sample.write(data.clone());
+    match serdata.kind() {
+        crate::internal::serdata::Kind::Key => {
+            let data = serdata.key();
+            let key = sample as *mut T::Key;
+            unsafe {
+                key.write(data.clone());
+            }
+            true
         }
-
-        true
-    } else {
-        false
+        crate::internal::serdata::Kind::Data => {
+            let data = serdata.sample();
+            let sample = sample as *mut T;
+            unsafe {
+                sample.write(data.clone());
+            }
+            true
+        }
     }
 }
 
@@ -391,7 +401,7 @@ pub unsafe extern "C" fn to_untyped<T>(
     serdata: *const cyclonedds_sys::ddsi_serdata,
 ) -> *mut cyclonedds_sys::ddsi_serdata
 where
-    T: std::clone::Clone,
+    T: crate::Topicable,
 {
     let serdata = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
 
@@ -399,7 +409,10 @@ where
         Box::from_raw(serdata.inner.type_ as *mut Sertype<T>)
     });
 
-    let mut untyped_serdata = Serdata::new(sertype.as_ref(), crate::internal::serdata::Kind::Key);
+    let mut untyped_serdata = Serdata::new(
+        sertype.as_ref(),
+        crate::internal::serdata::SampleOrKey::new_key(serdata.sample.as_ref().key().clone()),
+    );
     untyped_serdata.inner.type_ = std::ptr::null_mut();
 
     Box::into_raw(untyped_serdata) as *mut _
@@ -434,7 +447,10 @@ pub unsafe extern "C" fn untyped_to_sample<T>(
 /// ## Safety
 /// `serdata` must point to a valid previously allocated [`Serdata`].
 /// TODO
-pub unsafe extern "C" fn free<T>(serdata: *mut cyclonedds_sys::ddsi_serdata) {
+pub unsafe extern "C" fn free<T>(serdata: *mut cyclonedds_sys::ddsi_serdata)
+where
+    T: crate::Topicable,
+{
     let serdata = unsafe { Box::from_raw(serdata as *mut Serdata<T>) };
 
     drop(serdata);
@@ -453,12 +469,15 @@ pub unsafe extern "C" fn free<T>(serdata: *mut cyclonedds_sys::ddsi_serdata) {
 /// ## Safety
 /// `serdata` must point to a valid previously allocated [`Serdata`].
 /// TODO
-pub unsafe extern "C" fn print<T: std::fmt::Debug>(
+pub unsafe extern "C" fn print<T>(
     _sertype: *const cyclonedds_sys::ddsi_sertype,
     serdata: *const cyclonedds_sys::ddsi_serdata,
     buffer: *mut i8,
     length: usize,
-) -> usize {
+) -> usize
+where
+    T: crate::Topicable,
+{
     let serdata = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
 
     let buffer = unsafe { std::slice::from_raw_parts_mut(buffer as *mut u8, length) };
@@ -476,14 +495,18 @@ pub unsafe extern "C" fn print<T: std::fmt::Debug>(
 /// ## Safety
 pub unsafe extern "C" fn get_keyhash<T>(
     serdata: *const cyclonedds_sys::ddsi_serdata,
-    a: *mut cyclonedds_sys::ddsi_keyhash,
-    b: bool,
-) {
-    let args = (serdata, a, b);
-    todo!(
-        "serdata_ops::get_keyhash<{}>({args:?})",
-        std::any::type_name::<T>()
-    )
+    keyhash: *mut cyclonedds_sys::ddsi_keyhash,
+    force_md5: bool,
+) where
+    T: crate::Topicable,
+{
+    let mut serdata =
+        std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
+    let keyhash = unsafe { &mut *keyhash };
+
+    if let Some(serdata_keyhash) = crate::sample::KeyHash::from_key::<T>(serdata.key(), force_md5) {
+        keyhash.value.copy_from_slice(&serdata_keyhash.0);
+    }
 }
 
 /// TODO Unimplemented

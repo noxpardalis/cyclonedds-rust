@@ -152,7 +152,7 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
         let mask = state::sample::Any | state::view::Any | state::instance::Any;
         let read_condition = crate::ReadCondition::new(&reader, mask).unwrap();
 
@@ -186,7 +186,7 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
         let mask = state::sample::Any | state::view::Any | state::instance::Any;
         let read_condition = crate::ReadCondition::new(&reader, mask).unwrap();
 
@@ -215,8 +215,8 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
-        let writer = crate::Writer::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
+        let writer = crate::Writer::new(&topic).unwrap();
         let mask = state::sample::Any | state::view::Any | state::instance::Any;
         let read_condition_1 = crate::ReadCondition::new(&reader, mask).unwrap();
 
@@ -308,8 +308,8 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
-        let writer = crate::Writer::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
+        let writer = crate::Writer::new(&topic).unwrap();
 
         let data01 = 10;
         let data02 = "String";

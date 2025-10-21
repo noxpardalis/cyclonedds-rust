@@ -17,11 +17,8 @@ pub struct Sertype<T> {
 
 impl<T> Sertype<T>
 where
-    T: std::clone::Clone
-        + serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::default::Default
-        + std::fmt::Debug,
+    T: crate::Topicable,
+    T::Key: std::fmt::Debug,
 {
     pub(crate) const SERTYPE_OPS: cyclonedds_sys::ddsi_sertype_ops =
         cyclonedds_sys::ddsi_sertype_ops {
@@ -69,12 +66,12 @@ where
         };
 
     /// Create a new [`Sertype<T>`].
-    pub fn new(type_name: &std::ffi::CStr, topic_kind_no_key: bool) -> Box<Self> {
+    pub fn new(type_name: &std::ffi::CStr, topic_has_key: bool) -> Box<Self> {
         let inner = ffi::ddsi_sertype_new(
             type_name,
             &Self::SERTYPE_OPS,
             &Self::SERDATA_OPS,
-            topic_kind_no_key,
+            topic_has_key,
         );
 
         Box::new(Sertype {

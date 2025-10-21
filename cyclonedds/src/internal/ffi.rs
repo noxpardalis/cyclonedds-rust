@@ -36,6 +36,7 @@ pub fn ddsi_serdata_new(
 /// Increment the reference count of a serdata. This is primarily used by the
 /// [`Serdata`][`crate::internal::serdata::Serdata`] wrapper.
 #[inline]
+#[allow(dead_code)]
 pub fn ddsi_serdata_ref(serdata: &mut cyclonedds_sys::ddsi_serdata) {
     unsafe { cyclonedds_sys::ddsi_serdata_ref(serdata) };
 }
@@ -53,7 +54,7 @@ pub fn ddsi_sertype_new(
     type_name: &std::ffi::CStr,
     sertype_ops: &cyclonedds_sys::ddsi_sertype_ops,
     serdata_ops: &cyclonedds_sys::ddsi_serdata_ops,
-    topic_kind_no_key: bool,
+    topic_has_key: bool,
 ) -> cyclonedds_sys::ddsi_sertype {
     let mut sertype = cyclonedds_sys::ddsi_sertype::default();
 
@@ -63,7 +64,8 @@ pub fn ddsi_sertype_new(
             type_name.as_ptr(),
             sertype_ops,
             serdata_ops,
-            topic_kind_no_key,
+            // the interface is based around topic_kind_no_key so invert here.
+            !topic_has_key,
         );
     };
 
@@ -73,6 +75,7 @@ pub fn ddsi_sertype_new(
 /// Increment the reference count of a sertype. This is primarily used by the
 /// [`Sertype`][`crate::internal::sertype::Sertype`] wrapper.
 #[inline]
+#[allow(dead_code)]
 pub fn ddsi_sertype_ref(sertype: &mut cyclonedds_sys::ddsi_sertype) {
     unsafe { cyclonedds_sys::ddsi_sertype_ref(sertype) };
 }
@@ -185,6 +188,27 @@ pub fn ddsi_xqos_init(qos: &mut cyclonedds_sys::dds_qos_t) {
 pub fn ddsi_xqos_fini(qos: &mut cyclonedds_sys::dds_qos_t) {
     unsafe {
         cyclonedds_sys::ddsi_xqos_fini(qos);
+    }
+}
+
+///
+pub fn dds_qos_set_user_data(qos: &mut cyclonedds_sys::dds_qos_t, user_data: &[u8]) {
+    unsafe {
+        cyclonedds_sys::dds_qset_userdata(qos, user_data.as_ptr() as *const _, user_data.len());
+    }
+}
+
+///
+pub fn dds_qos_set_topic_data(qos: &mut cyclonedds_sys::dds_qos_t, topic_data: &[u8]) {
+    unsafe {
+        cyclonedds_sys::dds_qset_userdata(qos, topic_data.as_ptr() as *const _, topic_data.len());
+    }
+}
+
+///
+pub fn dds_qos_set_group_data(qos: &mut cyclonedds_sys::dds_qos_t, group_data: &[u8]) {
+    unsafe {
+        cyclonedds_sys::dds_qset_userdata(qos, group_data.as_ptr() as *const _, group_data.len());
     }
 }
 
@@ -373,19 +397,24 @@ pub fn dds_qos_set_reader_data_lifecycle(
     }
 }
 
+///
+pub fn dds_qos_set_entity_name(qos: &mut cyclonedds_sys::dds_qos_t, name: std::ffi::CString) {
+    unsafe { cyclonedds_sys::dds_qset_entity_name(qos, name.as_ptr()) }
+}
+
 /// Create a participant within a domain. This is primarily used by the
 /// [`Participant`][`crate::Participant`] wrapper.
 pub fn dds_create_participant(
     domain: cyclonedds_sys::dds_domainid_t,
     qos: Option<&cyclonedds_sys::dds_qos_t>,
-    listener: Option<&cyclonedds_sys::dds_listener_t>,
+    listener: Option<&Listener>,
 ) -> Result<cyclonedds_sys::dds_entity_t> {
     unsafe {
         cyclonedds_sys::dds_create_participant(
             domain,
             qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
             listener
-                .map(|listener| listener as *const _)
+                .map(|listener| listener.inner.as_ptr() as *const _)
                 .unwrap_or(std::ptr::null()),
         )
     }
@@ -399,7 +428,7 @@ pub fn dds_create_topic(
     name: &std::ffi::CStr,
     sertype: &mut &mut cyclonedds_sys::ddsi_sertype,
     qos: Option<&cyclonedds_sys::dds_qos_t>,
-    listener: Option<&cyclonedds_sys::dds_listener_t>,
+    listener: Option<&Listener>,
 ) -> Result<cyclonedds_sys::dds_entity_t> {
     let sedp_plist = std::ptr::null();
 
@@ -410,7 +439,7 @@ pub fn dds_create_topic(
             sertype as *mut &mut _ as *mut *mut _,
             qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
             listener
-                .map(|listener| listener as *const _)
+                .map(|listener| listener.inner.as_ptr() as *const _)
                 .unwrap_or(std::ptr::null()),
             sedp_plist,
         )
@@ -423,14 +452,14 @@ pub fn dds_create_topic(
 pub fn dds_create_publisher(
     participant: cyclonedds_sys::dds_entity_t,
     qos: Option<&cyclonedds_sys::dds_qos_t>,
-    listener: Option<&cyclonedds_sys::dds_listener_t>,
+    listener: Option<&Listener>,
 ) -> Result<cyclonedds_sys::dds_entity_t> {
     unsafe {
         cyclonedds_sys::dds_create_publisher(
             participant,
             qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
             listener
-                .map(|listener| listener as *const _)
+                .map(|listener| listener.inner.as_ptr() as *const _)
                 .unwrap_or(std::ptr::null()),
         )
     }
@@ -442,14 +471,14 @@ pub fn dds_create_publisher(
 pub fn dds_create_subscriber(
     participant: cyclonedds_sys::dds_entity_t,
     qos: Option<&cyclonedds_sys::dds_qos_t>,
-    listener: Option<&cyclonedds_sys::dds_listener_t>,
+    listener: Option<&Listener>,
 ) -> Result<cyclonedds_sys::dds_entity_t> {
     unsafe {
         cyclonedds_sys::dds_create_subscriber(
             participant,
             qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
             listener
-                .map(|listener| listener as *const _)
+                .map(|listener| listener.inner.as_ptr() as *const _)
                 .unwrap_or(std::ptr::null()),
         )
     }
@@ -462,7 +491,7 @@ pub fn dds_create_reader(
     participant_or_subscriber: cyclonedds_sys::dds_entity_t,
     topic: cyclonedds_sys::dds_entity_t,
     qos: Option<&cyclonedds_sys::dds_qos_t>,
-    listener: Option<&cyclonedds_sys::dds_listener_t>,
+    listener: Option<&Listener>,
 ) -> Result<cyclonedds_sys::dds_entity_t> {
     unsafe {
         cyclonedds_sys::dds_create_reader(
@@ -470,7 +499,7 @@ pub fn dds_create_reader(
             topic,
             qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
             listener
-                .map(|listener| listener as *const _)
+                .map(|listener| listener.inner.as_ptr() as *const _)
                 .unwrap_or(std::ptr::null()),
         )
     }
@@ -483,7 +512,7 @@ pub fn dds_create_writer(
     participant_or_publisher: cyclonedds_sys::dds_entity_t,
     topic: cyclonedds_sys::dds_entity_t,
     qos: Option<&cyclonedds_sys::dds_qos_t>,
-    listener: Option<&cyclonedds_sys::dds_listener_t>,
+    listener: Option<&Listener>,
 ) -> Result<cyclonedds_sys::dds_entity_t> {
     unsafe {
         cyclonedds_sys::dds_create_writer(
@@ -491,7 +520,7 @@ pub fn dds_create_writer(
             topic,
             qos.map(|qos| qos as *const _).unwrap_or(std::ptr::null()),
             listener
-                .map(|listener| listener as *const _)
+                .map(|listener| listener.inner.as_ptr() as *const _)
                 .unwrap_or(std::ptr::null()),
         )
     }
@@ -523,7 +552,7 @@ unsafe extern "C" fn dds_read_with_collector_callback<T>(
     serdata: *mut cyclonedds_sys::ddsi_serdata,
 ) -> cyclonedds_sys::dds_return_t
 where
-    T: std::clone::Clone + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     let buffer = unsafe { &mut *(arg as *mut Vec<crate::sample::SampleOrKey<T>>) };
 
@@ -535,32 +564,31 @@ where
         Box::from_raw(serdata as *mut crate::internal::serdata::Serdata<T>)
     });
 
+    let valid_data = info.valid_data;
     let info: crate::sample::Info = info.into();
 
-    if !info.valid {
+    if !valid_data {
         match serdata.kind() {
-            // TODO validate what to do here?
-
-            // Do nothing if the kind is empty.
-            crate::internal::serdata::Kind::Empty => (),
             // If it's a key push a key constructed from the default
             // construction.
-            crate::internal::serdata::Kind::Key => buffer.push(
-                crate::sample::SampleOrKey::new_key(T::into_key(T::default()), info),
-            ),
-            // If it's data push a default construction.
-            crate::internal::serdata::Kind::Data => {
-                buffer.push(crate::sample::SampleOrKey::new_sample(T::default(), info))
+            crate::internal::serdata::Kind::Key => {
+                buffer.push(crate::sample::SampleOrKey::new_key(T::Key::default(), info))
             }
+            // If it's data push a default construction.
+            crate::internal::serdata::Kind::Data =>
+            // TODO decide do nothing or push default construction.
+            {
+                ()
+            } // {
+              //     buffer.push(crate::sample::SampleOrKey::new_sample(T::default(), info))
+              // }
         }
         cyclonedds_sys::DDS_RETCODE_OK as _
-    } else if let Some(sample) = serdata.sample() {
-        let sample = sample.clone();
+    } else {
+        let sample = serdata.sample().clone();
         let info = info.into();
         buffer.push(crate::sample::SampleOrKey::new_sample(sample, info));
         cyclonedds_sys::DDS_RETCODE_OK as _
-    } else {
-        cyclonedds_sys::DDS_RETCODE_PRECONDITION_NOT_MET
     }
 }
 
@@ -598,7 +626,7 @@ fn dds_read_take_peek<T, RO>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
 ) -> Result<Vec<crate::sample::SampleOrKey<T>>>
 where
-    T: crate::sample::Keyed + std::clone::Clone,
+    T: crate::Topicable,
     RO: read_operation::ReadOperation,
 {
     let mut samples = Vec::new();
@@ -628,7 +656,7 @@ pub fn dds_take<T>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
 ) -> Result<Vec<crate::sample::SampleOrKey<T>>>
 where
-    T: std::clone::Clone + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     dds_read_take_peek::<T, read_operation::Take>(reader_or_condition)
 }
@@ -638,7 +666,7 @@ pub fn dds_read<T>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
 ) -> Result<Vec<crate::sample::SampleOrKey<T>>>
 where
-    T: std::clone::Clone + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     dds_read_take_peek::<T, read_operation::Read>(reader_or_condition)
 }
@@ -648,7 +676,7 @@ pub fn dds_peek<T>(
     reader_or_condition: cyclonedds_sys::dds_entity_t,
 ) -> Result<Vec<crate::sample::SampleOrKey<T>>>
 where
-    T: std::clone::Clone + crate::sample::Keyed,
+    T: crate::Topicable,
 {
     dds_read_take_peek::<T, read_operation::Peek>(reader_or_condition)
 }
@@ -850,6 +878,13 @@ pub fn dds_waitset_wait_until<'a, A>(
         .collect();
 
     Ok((number_of_triggered_entities, blobs))
+}
+
+///
+pub fn dds_get_participant(
+    entity: cyclonedds_sys::dds_entity_t,
+) -> Result<cyclonedds_sys::dds_entity_t> {
+    unsafe { cyclonedds_sys::dds_get_participant(entity) }.into_error()
 }
 
 #[cfg(test)]

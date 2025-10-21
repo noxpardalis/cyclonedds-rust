@@ -1,5 +1,4 @@
 use crate::Participant;
-use crate::QoS;
 use crate::Result;
 
 use crate::internal::ffi;
@@ -13,14 +12,81 @@ pub struct Topic<'domain, 'participant, T> {
     phantom_participant: std::marker::PhantomData<&'participant Participant<'domain>>,
 }
 
+pub struct TopicBuilder<'domain, 'participant, 'qos, 'name, T> {
+    participant: &'participant Participant<'domain>,
+    name: &'name str,
+    qos: Option<&'qos crate::QoS>,
+    listener: Option<crate::Listener>,
+    phantom: std::marker::PhantomData<T>,
+}
+
+impl<'d, 'p, 'q, 'n, T> TopicBuilder<'d, 'p, 'q, 'n, T> {
+    pub fn new(participant: &'p Participant<'d>, name: &'n str) -> Self {
+        Self {
+            participant,
+            name,
+            qos: None,
+            listener: None,
+            phantom: std::marker::PhantomData,
+        }
+    }
+
+    pub fn with_qos(mut self, qos: &'q crate::QoS) -> Self {
+        self.qos = Some(qos);
+        self
+    }
+
+    pub fn with_listener(mut self, listener: crate::Listener) -> Self {
+        self.listener = Some(listener);
+        self
+    }
+
+    pub fn build(self) -> Result<Topic<'d, 'p, T>>
+    where
+        T: crate::Topicable,
+    {
+        let name =
+            std::ffi::CString::new(self.name).map_err(|_| crate::error::Error::BadParameter)?;
+        let type_name = std::ffi::CString::new(T::type_name())
+            .map_err(|_| crate::error::Error::BadParameter)?;
+
+        let mut sertype = Sertype::<T>::new(&type_name, T::IS_KEYED);
+        let inner = ffi::dds_create_topic(
+            self.participant.inner,
+            &name,
+            &mut &mut sertype.inner,
+            self.qos.map(|qos| &qos.inner),
+            self.listener
+                .map(|listener| listener.as_ffi())
+                .transpose()?
+                .as_ref(),
+        )?;
+
+        Ok(Topic {
+            inner,
+            _sertype: Some(sertype),
+            phantom_participant: Default::default(),
+        })
+    }
+}
+
 impl<'d, 'p, T> Topic<'d, 'p, T>
 where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug,
+    T: crate::Topicable,
 {
+    ///
+    pub fn new(participant: &'p Participant<'d>, name: &str) -> Result<Self> {
+        Self::builder(participant, name).build()
+    }
+
+    ///
+    pub fn builder<'q, 'n>(
+        participant: &'p Participant<'d>,
+        name: &'n str,
+    ) -> TopicBuilder<'d, 'p, 'q, 'n, T> {
+        TopicBuilder::new(participant, name)
+    }
+
     ///
     pub(crate) const fn from_existing(
         inner: cyclonedds_sys::dds_entity_t,
@@ -59,106 +125,6 @@ where
     }
 }
 
-impl<'d, 'p, T> Topic<'d, 'p, T>
-where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed<Key = std::convert::Infallible>,
-{
-    ///
-    pub fn new(participant: &'p Participant<'d>, name: &str) -> Result<Self> {
-        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
-        let mut sertype = Sertype::<T>::new(&name, true);
-        let inner = ffi::dds_create_topic(
-            participant.inner,
-            &name,
-            &mut &mut sertype.inner,
-            None,
-            None,
-        )?;
-
-        Ok(Self {
-            inner,
-            _sertype: Some(sertype),
-            phantom_participant: Default::default(),
-        })
-    }
-
-    ///
-    pub fn new_with_qos(participant: &'p Participant<'d>, name: &str, qos: &QoS) -> Result<Self> {
-        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
-        let mut sertype = Sertype::<T>::new(&name, true);
-        let inner = ffi::dds_create_topic(
-            participant.inner,
-            &name,
-            &mut &mut sertype.inner,
-            Some(&qos.inner),
-            None,
-        )?;
-
-        Ok(Self {
-            inner,
-            _sertype: Some(sertype),
-            phantom_participant: Default::default(),
-        })
-    }
-}
-
-impl<'d, 'p, T> Topic<'d, 'p, T>
-where
-    T: serde::ser::Serialize
-        + serde::de::DeserializeOwned
-        + std::clone::Clone
-        + std::default::Default
-        + std::fmt::Debug
-        + crate::sample::Keyed,
-{
-    ///
-    pub fn new_keyed(participant: &'p Participant<'d>, name: &str) -> Result<Self> {
-        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
-        let mut sertype = Sertype::<T>::new(&name, false);
-        let inner = ffi::dds_create_topic(
-            participant.inner,
-            &name,
-            &mut &mut sertype.inner,
-            None,
-            None,
-        )?;
-
-        Ok(Self {
-            inner,
-            _sertype: Some(sertype),
-            phantom_participant: Default::default(),
-        })
-    }
-
-    ///
-    pub fn new_keyed_with_qos(
-        participant: &'p Participant<'d>,
-        name: &str,
-        qos: &QoS,
-    ) -> Result<Self> {
-        let name = std::ffi::CString::new(name).map_err(|_| crate::error::Error::BadParameter)?;
-        let mut sertype = Sertype::<T>::new(&name, false);
-        let inner = ffi::dds_create_topic(
-            participant.inner,
-            &name,
-            &mut &mut sertype.inner,
-            Some(&qos.inner),
-            None,
-        )?;
-
-        Ok(Self {
-            inner,
-            _sertype: Some(sertype),
-            phantom_participant: Default::default(),
-        })
-    }
-}
-
 impl<T> Drop for Topic<'_, '_, T> {
     fn drop(&mut self) {
         let result = ffi::dds_delete(self.inner);
@@ -178,7 +144,9 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let participant = Participant::new(&domain).unwrap();
         let _ = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let _ = Topic::<crate::tests::topic::Data>::new_with_qos(&participant, &topic_name, &qos)
+        let _ = Topic::<crate::tests::topic::Data>::builder(&participant, &topic_name)
+            .with_qos(&qos)
+            .build()
             .unwrap();
     }
 
@@ -193,9 +161,10 @@ mod tests {
         let result = Topic::<crate::tests::topic::Data>::new(&participant, topic_name).unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
 
-        let result =
-            Topic::<crate::tests::topic::Data>::new_with_qos(&participant, topic_name, &qos)
-                .unwrap_err();
+        let result = Topic::<crate::tests::topic::Data>::builder(&participant, topic_name)
+            .with_qos(&qos)
+            .build()
+            .unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
     }
 
@@ -211,9 +180,10 @@ mod tests {
         let result =
             Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
-        let result =
-            Topic::<crate::tests::topic::Data>::new_with_qos(&participant, &topic_name, &qos)
-                .unwrap_err();
+        let result = Topic::<crate::tests::topic::Data>::builder(&participant, &topic_name)
+            .with_qos(&qos)
+            .build()
+            .unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
         participant.inner = participant_id;
     }

@@ -16,15 +16,15 @@ pub mod topic {
         pub message: String,
     }
 
-    impl crate::sample::Keyed for Data {
-        type Key = std::convert::Infallible;
+    impl crate::Topicable for Data {
+        type Key = ();
 
         fn from_key(_: &Self::Key) -> Self {
             Default::default()
         }
 
-        fn into_key(self: Self) -> Self::Key {
-            unreachable!()
+        fn into_key(&self) -> Self::Key {
+            ()
         }
     }
 

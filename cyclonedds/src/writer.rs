@@ -7,50 +7,83 @@ use crate::internal::ffi;
 #[derive(Debug)]
 pub struct Writer<'domain, 'participant, 'topic, T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
     phantom_topic: std::marker::PhantomData<&'topic Topic<'domain, 'participant, T>>,
 }
 
-impl<'d, 'p, 't, T> Writer<'d, 'p, 't, T>
+pub struct WriterBuilder<'domain, 'participant, 'topic, 'qos, T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
-    ///
-    pub fn new<P>(participant_or_publisher: P, topic: &'t Topic<'d, 'p, T>) -> Result<Self>
+    participant_or_publisher: Option<ParticipantOrPublisher<'domain, 'participant>>,
+    topic: &'topic Topic<'domain, 'participant, T>,
+    qos: Option<&'qos crate::QoS>,
+    listener: Option<crate::WriterListener<T>>,
+}
+
+impl<'d, 'p, 't, 'q, T> WriterBuilder<'d, 'p, 't, 'q, T>
+where
+    T: crate::Topicable,
+{
+    pub fn new(topic: &'t Topic<'d, 'p, T>) -> Self {
+        Self {
+            participant_or_publisher: None,
+            topic,
+            qos: None,
+            listener: None,
+        }
+    }
+
+    pub fn with_qos(mut self, qos: &'q crate::QoS) -> Self {
+        self.qos = Some(qos);
+        self
+    }
+
+    pub fn with_listener(mut self, listener: crate::WriterListener<T>) -> Self {
+        self.listener = Some(listener);
+        self
+    }
+
+    pub fn with_participant_or_publisher<P>(mut self, participant_or_publisher: P) -> Self
     where
         P: Into<ParticipantOrPublisher<'d, 'p>>,
     {
-        Ok(Self {
+        self.participant_or_publisher = Some(participant_or_publisher.into());
+        self
+    }
+
+    pub fn build(self) -> Result<Writer<'d, 'p, 't, T>> {
+        Ok(Writer {
             inner: ffi::dds_create_writer(
-                participant_or_publisher.into().inner(),
-                topic.inner,
-                None,
-                None,
+                self.participant_or_publisher
+                    .map(|participant_or_publisher| participant_or_publisher.inner())
+                    .unwrap_or(ffi::dds_get_participant(self.topic.inner)?),
+                self.topic.inner,
+                self.qos.map(|qos| &qos.inner),
+                self.listener
+                    .map(|listener| listener.as_ffi())
+                    .transpose()?
+                    .as_ref(),
             )?,
             phantom_topic: std::marker::PhantomData,
         })
     }
+}
+
+impl<'d, 'p, 't, T> Writer<'d, 'p, 't, T>
+where
+    T: crate::Topicable,
+{
+    ///
+    pub fn new(topic: &'t Topic<'d, 'p, T>) -> Result<Self> {
+        Self::builder(topic).build()
+    }
 
     ///
-    pub fn new_with_qos<P>(
-        participant_or_publisher: P,
-        topic: &'t Topic<'d, 'p, T>,
-        qos: &crate::QoS,
-    ) -> Result<Self>
-    where
-        P: Into<ParticipantOrPublisher<'d, 'p>>,
-    {
-        Ok(Self {
-            inner: ffi::dds_create_writer(
-                participant_or_publisher.into().inner(),
-                topic.inner,
-                Some(&qos.inner),
-                None,
-            )?,
-            phantom_topic: std::marker::PhantomData,
-        })
+    pub fn builder<'q>(topic: &'t Topic<'d, 'p, T>) -> WriterBuilder<'d, 'p, 't, 'q, T> {
+        WriterBuilder::new(topic)
     }
 
     ///
@@ -113,7 +146,7 @@ where
 
 impl<T> Drop for Writer<'_, '_, '_, T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     fn drop(&mut self) {
         let result = ffi::dds_delete(self.inner);
@@ -135,10 +168,13 @@ mod tests {
         let publisher = crate::Publisher::new(&participant).unwrap();
         let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
 
-        let _ = Writer::new(&participant, &topic).unwrap();
-        let _ = Writer::new_with_qos(&participant, &topic, &qos).unwrap();
-        let _ = Writer::new(&publisher, &topic).unwrap();
-        let _ = Writer::new_with_qos(&publisher, &topic, &qos).unwrap();
+        let _ = Writer::new(&topic).unwrap();
+        let _ = Writer::builder(&topic).with_qos(&qos).build().unwrap();
+        let _ = Writer::builder(&topic)
+            .with_participant_or_publisher(&publisher)
+            .with_qos(&qos)
+            .build()
+            .unwrap();
     }
 
     #[test]
@@ -152,9 +188,9 @@ mod tests {
 
         let topic_id = topic.inner;
         topic.inner = 0;
-        let result = Writer::new(&participant, &topic).unwrap_err();
+        let result = Writer::new(&topic).unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
-        let result = Writer::new_with_qos(&participant, &topic, &qos).unwrap_err();
+        let result = Writer::builder(&topic).with_qos(&qos).build().unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
         topic.inner = topic_id;
     }
@@ -166,7 +202,7 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
         let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let writer = Writer::new(&participant, &topic).unwrap();
+        let writer = Writer::new(&topic).unwrap();
         writer.write(&Default::default()).unwrap();
     }
 
@@ -177,7 +213,7 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
         let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let writer = Writer::new(&participant, &topic).unwrap();
+        let writer = Writer::new(&topic).unwrap();
         let timestamp = crate::Time::from_nanos(10001);
         writer
             .write_with_timestamp(&Default::default(), timestamp)
@@ -191,7 +227,7 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
         let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let mut writer = Writer::new(&participant, &topic).unwrap();
+        let mut writer = Writer::new(&topic).unwrap();
 
         let writer_id = writer.inner;
         writer.inner = 0;
@@ -208,7 +244,7 @@ mod tests {
         let topic_name = crate::tests::topic::unique_name();
         let participant = crate::Participant::new(&domain).unwrap();
         let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let mut writer = Writer::new(&participant, &topic).unwrap();
+        let mut writer = Writer::new(&topic).unwrap();
 
         let writer_id = writer.inner;
         writer.inner = 0;
@@ -235,12 +271,12 @@ mod tests {
             .with_offered_incompatible_qos(|_, _| ())
             .with_publication_matched(|_, _| ());
 
-        let _ = Writer::new(&participant, &topic)
+        let _ = Writer::new(&topic)
             .unwrap()
             .with_listener(&listener)
             .unwrap();
 
-        let mut writer = Writer::new(&participant, &topic).unwrap();
+        let mut writer = Writer::new(&topic).unwrap();
         writer.set_listener(&listener).unwrap();
         writer.unset_listener().unwrap();
     }
@@ -255,7 +291,7 @@ mod tests {
 
         let listener = crate::WriterListener::new();
 
-        let mut writer = Writer::new(&participant, &topic).unwrap();
+        let mut writer = Writer::new(&topic).unwrap();
         let writer_id = writer.inner;
         writer.inner = 0;
         let result = writer.set_listener(&listener).unwrap_err();
@@ -273,7 +309,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic = Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
 
-        let writer_01 = Writer::new(&participant, &topic).unwrap();
+        let writer_01 = Writer::new(&topic).unwrap();
         let writer_02 = Writer::<crate::tests::topic::Data>::from_existing(writer_01.inner);
         assert_eq!(writer_01.inner, writer_02.inner);
     }

@@ -31,6 +31,7 @@ pub struct QoS {
     entity_factory: Option<policy::EntityFactory>,
     writer_data_lifecycle: Option<policy::WriterDataLifecycle>,
     reader_data_lifecycle: Option<policy::ReaderDataLifecycle>,
+    entity_name: Option<policy::EntityName>,
 }
 
 impl QoS {
@@ -41,20 +42,20 @@ impl QoS {
         qos
     }
 
-    /// FIXME
     pub fn with_user_data(mut self, user_data: policy::UserData) -> Self {
+        ffi::dds_qos_set_user_data(&mut self.inner, user_data.as_ffi());
         self.user_data = Some(user_data);
         self
     }
 
-    /// FIXME
     pub fn with_topic_data(mut self, topic_data: policy::TopicData) -> Self {
+        ffi::dds_qos_set_topic_data(&mut self.inner, topic_data.as_ffi());
         self.topic_data = Some(topic_data);
         self
     }
 
-    /// FIXME
     pub fn with_group_data(mut self, group_data: policy::GroupData) -> Self {
+        ffi::dds_qos_set_group_data(&mut self.inner, group_data.as_ffi());
         self.group_data = Some(group_data);
         self
     }
@@ -258,6 +259,14 @@ impl QoS {
         self.reader_data_lifecycle = Some(reader_data_lifecycle);
         self
     }
+
+    ///
+    pub fn with_entity_name(mut self, entity_name: policy::EntityName) -> Self {
+        let name = entity_name.as_ffi();
+        ffi::dds_qos_set_entity_name(&mut self.inner, name);
+        self.entity_name = Some(entity_name);
+        self
+    }
 }
 
 impl Drop for QoS {
@@ -331,6 +340,9 @@ mod tests {
             autopurge_nowriter_samples_delay: Default::default(),
             autopurge_disposed_samples_delay: Default::default(),
         };
+        let entity_name = policy::EntityName {
+            name: Default::default(),
+        };
 
         let qos = QoS::new()
             .with_user_data(user_data.clone())
@@ -353,7 +365,8 @@ mod tests {
             .with_resource_limits(resource_limits.clone())
             .with_entity_factory(entity_factory.clone())
             .with_writer_data_lifecycle(writer_data_lifecycle.clone())
-            .with_reader_data_lifecycle(reader_data_lifecycle.clone());
+            .with_reader_data_lifecycle(reader_data_lifecycle.clone())
+            .with_entity_name(entity_name.clone());
 
         assert_eq!(qos.user_data, Some(user_data));
         assert_eq!(qos.topic_data, Some(topic_data));
@@ -376,6 +389,7 @@ mod tests {
         assert_eq!(qos.entity_factory, Some(entity_factory));
         assert_eq!(qos.writer_data_lifecycle, Some(writer_data_lifecycle));
         assert_eq!(qos.reader_data_lifecycle, Some(reader_data_lifecycle));
+        assert_eq!(qos.entity_name, Some(entity_name));
     }
 
     #[test]
@@ -613,5 +627,14 @@ mod tests {
         };
         let qos = QoS::new().with_reader_data_lifecycle(reader_data_lifecycle.clone());
         assert_eq!(qos.reader_data_lifecycle, Some(reader_data_lifecycle));
+    }
+
+    #[test]
+    fn test_qos_set_entity_name() {
+        let entity_name = policy::EntityName {
+            name: "my_entity".to_string(),
+        };
+        let qos = QoS::new().with_entity_name(entity_name.clone());
+        assert_eq!(qos.entity_name, Some(entity_name));
     }
 }

@@ -2,7 +2,7 @@ use cyclonedds as dds;
 
 mod common;
 
-impl dds::sample::Keyed for common::topic::Data {
+impl dds::sample::Topicable for common::topic::Data {
     type Key = (u32, i32);
 
     fn from_key(key: &Self::Key) -> Self {
@@ -13,7 +13,7 @@ impl dds::sample::Keyed for common::topic::Data {
         }
     }
 
-    fn into_key(self: Self) -> Self::Key {
+    fn into_key(&self) -> Self::Key {
         (self.x, self.y)
     }
 }
@@ -72,16 +72,34 @@ fn read_write() -> dds::Result<()> {
             max_blocking_time: dds::Duration::INFINITE,
         });
 
-    let participant_01 = dds::Participant::new_with_qos(&domain_01, &qos)?;
+    let participant_01 = dds::Participant::builder(&domain_01)
+        .with_qos(&qos)
+        .build()?;
     let topic_01: dds::Topic<common::topic::Data> =
-        dds::Topic::new_keyed_with_qos(&participant_01, &topic_name, &qos)?;
-    let subscriber = dds::Subscriber::new_with_qos(&participant_01, &qos)?;
-    let reader = dds::Reader::new_with_qos(&subscriber, &topic_01, &qos)?;
+        dds::Topic::builder(&participant_01, &topic_name)
+            .with_qos(&qos)
+            .build()?;
+    let subscriber = dds::Subscriber::builder(&participant_01)
+        .with_qos(&qos)
+        .build()?;
+    let reader = dds::Reader::builder(&topic_01)
+        .with_participant_or_subscriber(&subscriber)
+        .with_qos(&qos)
+        .build()?;
 
-    let participant_02 = dds::Participant::new_with_qos(&domain_02, &qos)?;
-    let topic_02 = dds::Topic::new_keyed_with_qos(&participant_02, &topic_name, &qos)?;
-    let publisher = dds::Publisher::new_with_qos(&participant_02, &qos)?;
-    let writer = dds::Writer::new_with_qos(&publisher, &topic_02, &qos)?;
+    let participant_02 = dds::Participant::builder(&domain_02)
+        .with_qos(&qos)
+        .build()?;
+    let topic_02 = dds::Topic::builder(&participant_02, &topic_name)
+        .with_qos(&qos)
+        .build()?;
+    let publisher = dds::Publisher::builder(&participant_02)
+        .with_qos(&qos)
+        .build()?;
+    let writer = dds::Writer::builder(&topic_02)
+        .with_participant_or_publisher(&publisher)
+        .with_qos(&qos)
+        .build()?;
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 

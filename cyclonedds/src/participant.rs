@@ -8,21 +8,55 @@ pub struct Participant<'domain> {
     phantom: std::marker::PhantomData<&'domain crate::Domain>,
 }
 
-impl<'d> Participant<'d> {
-    ///
-    pub fn new(domain: &'d crate::Domain) -> Result<Self> {
-        Ok(Self {
-            inner: ffi::dds_create_participant(domain.id, None, None)?,
+pub struct ParticipantBuilder<'domain, 'qos> {
+    domain: &'domain crate::Domain,
+    qos: Option<&'qos crate::QoS>,
+    listener: Option<crate::Listener>,
+}
+
+impl<'d, 'q> ParticipantBuilder<'d, 'q> {
+    pub fn new(domain: &'d crate::Domain) -> Self {
+        Self {
+            domain,
+            qos: None,
+            listener: None,
+        }
+    }
+
+    pub fn with_qos(mut self, qos: &'q crate::QoS) -> Self {
+        self.qos = Some(qos);
+        self
+    }
+
+    pub fn with_listener(mut self, listener: crate::Listener) -> Self {
+        self.listener = Some(listener);
+        self
+    }
+
+    pub fn build(self) -> Result<Participant<'d>> {
+        Ok(Participant {
+            inner: ffi::dds_create_participant(
+                self.domain.id,
+                self.qos.map(|qos| &qos.inner),
+                self.listener
+                    .map(|listener| listener.as_ffi())
+                    .transpose()?
+                    .as_ref(),
+            )?,
             phantom: std::marker::PhantomData,
         })
     }
+}
+
+impl<'d> Participant<'d> {
+    ///
+    pub fn new(domain: &'d crate::Domain) -> Result<Self> {
+        Self::builder(domain).build()
+    }
 
     ///
-    pub fn new_with_qos(domain: &'d crate::Domain, qos: &crate::QoS) -> Result<Self> {
-        Ok(Self {
-            inner: ffi::dds_create_participant(domain.id, Some(&qos.inner), None)?,
-            phantom: std::marker::PhantomData,
-        })
+    pub fn builder<'q>(domain: &'d crate::Domain) -> ParticipantBuilder<'d, 'q> {
+        ParticipantBuilder::new(domain)
     }
 
     ///
@@ -72,9 +106,15 @@ mod tests {
         let qos = crate::QoS::new();
 
         let _ = Participant::new(&domain).unwrap();
-        let _ = Participant::new_with_qos(&domain, &qos).unwrap();
+        let _ = Participant::builder(&domain)
+            .with_qos(&qos)
+            .build()
+            .unwrap();
         let _ = Participant::new(&domain).unwrap();
-        let _ = Participant::new_with_qos(&domain, &qos).unwrap();
+        let _ = Participant::builder(&domain)
+            .with_qos(&qos)
+            .build()
+            .unwrap();
     }
 
     #[test]
@@ -88,7 +128,10 @@ mod tests {
         assert_eq!(result, Error::NonSpecific);
 
         let qos = crate::QoS::new();
-        let result = Participant::new_with_qos(&domain, &qos).unwrap_err();
+        let result = Participant::builder(&domain)
+            .with_qos(&qos)
+            .build()
+            .unwrap_err();
         assert_eq!(result, Error::NonSpecific);
     }
 

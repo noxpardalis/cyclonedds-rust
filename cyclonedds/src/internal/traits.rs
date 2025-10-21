@@ -1,0 +1,34 @@
+use std::hash::Hasher;
+
+pub trait CdrHeader {
+    fn cdr_header() -> [u8; 2];
+}
+
+impl CdrHeader for byteorder::LittleEndian {
+    fn cdr_header() -> [u8; 2] {
+        [0x00, 0x01]
+    }
+}
+
+impl CdrHeader for byteorder::BigEndian {
+    fn cdr_header() -> [u8; 2] {
+        [0x00, 0x00]
+    }
+}
+
+pub trait Hash32 {
+    fn hash32(&self) -> u32;
+}
+
+impl<T: std::hash::Hash> Hash32 for T {
+    fn hash32(&self) -> u32 {
+        // Prepare the 32-bit hash by running the default hasher which produces a
+        // 64-bit output and then combining the high and low ends of the hash via
+        // xor to produce a 32-bit output.
+        let mut hasher = std::hash::DefaultHasher::new();
+        self.hash(&mut hasher);
+        let hash: u64 = hasher.finish();
+        let hash: u32 = (hash ^ (hash >> 32)) as u32;
+        hash
+    }
+}

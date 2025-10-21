@@ -104,7 +104,7 @@ use ffi::Filter;
 /// </details>
 pub struct QueryCondition<'domain, 'participant, 'topic, 'reader, T, F>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
     F: Fn(&T) -> bool,
 {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
@@ -114,7 +114,7 @@ where
 
 impl<T, F> std::fmt::Debug for QueryCondition<'_, '_, '_, '_, T, F>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
     F: Fn(&T) -> bool,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -127,14 +127,14 @@ where
 
 impl<T, F> Filter<T, F> for QueryCondition<'_, '_, '_, '_, T, F>
 where
-    T: crate::sample::Keyed + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+    T: crate::Topicable + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
     F: Fn(&T) -> bool,
 {
 }
 
 impl<'d, 'p, 't, 'r, T, F> QueryCondition<'d, 'p, 't, 'r, T, F>
 where
-    T: crate::sample::Keyed + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+    T: crate::Topicable + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
     F: Fn(&T) -> bool,
 {
     ///
@@ -187,7 +187,7 @@ where
 
 impl<T, F> Drop for QueryCondition<'_, '_, '_, '_, T, F>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
     F: Fn(&T) -> bool,
 {
     fn drop(&mut self) {
@@ -213,7 +213,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
         let _ = QueryCondition::new(
             &reader,
             state::sample::Any | state::instance::Any | state::view::Any,
@@ -230,7 +230,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let mut reader = crate::Reader::new(&participant, &topic).unwrap();
+        let mut reader = crate::Reader::new(&topic).unwrap();
         let reader_id = reader.inner;
         reader.inner = 0;
         let result = QueryCondition::new(
@@ -251,7 +251,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
         let query_condition = QueryCondition::new(
             &reader,
             state::sample::Any | state::instance::Any | state::view::Any,
@@ -271,7 +271,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
 
         let mask = state::sample::Any | state::instance::Any | state::view::Any;
 
@@ -296,7 +296,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
         let mut query_condition = QueryCondition::new(
             &reader,
             state::sample::Any | state::instance::Any | state::view::Any,
@@ -320,8 +320,8 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
-        let writer = crate::Writer::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
+        let writer = crate::Writer::new(&topic).unwrap();
 
         let mask = state::sample::Stale | state::instance::Any | state::view::Any;
 
@@ -379,8 +379,8 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
-        let writer = crate::Writer::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
+        let writer = crate::Writer::new(&topic).unwrap();
 
         let mask = state::sample::Stale | state::instance::Any | state::view::Any;
 

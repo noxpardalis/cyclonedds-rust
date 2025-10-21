@@ -7,7 +7,7 @@ use crate::internal::ffi;
 #[derive(Debug)]
 pub struct ReadCondition<'domain, 'participant, 'topic, 'reader, T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
     phantom: std::marker::PhantomData<&'reader Reader<'domain, 'participant, 'topic, T>>,
@@ -15,7 +15,7 @@ where
 
 impl<'d, 'p, 't, 'r, T> ReadCondition<'d, 'p, 't, 'r, T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     ///
     pub fn new(reader: &'r Reader<'d, 'p, 't, T>, mask: State) -> Result<Self> {
@@ -64,7 +64,7 @@ where
 
 impl<T> Drop for ReadCondition<'_, '_, '_, '_, T>
 where
-    T: crate::sample::Keyed,
+    T: crate::Topicable,
 {
     fn drop(&mut self) {
         let result = ffi::dds_delete(self.inner);
@@ -85,7 +85,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
         let _ = ReadCondition::new(
             &reader,
             state::sample::Any | state::instance::Any | state::view::Any,
@@ -101,7 +101,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let mut reader = crate::Reader::new(&participant, &topic).unwrap();
+        let mut reader = crate::Reader::new(&topic).unwrap();
         let reader_id = reader.inner;
         reader.inner = 0;
         let result = ReadCondition::new(
@@ -121,7 +121,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
 
         let mask = state::sample::Any | state::instance::Any | state::view::Any;
 
@@ -146,7 +146,7 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
         let mut read_condition = ReadCondition::new(
             &reader,
             state::sample::Any | state::instance::Any | state::view::Any,
@@ -169,8 +169,8 @@ mod tests {
         let participant = crate::Participant::new(&domain).unwrap();
         let topic =
             crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
-        let reader = crate::Reader::new(&participant, &topic).unwrap();
-        let writer = crate::Writer::new(&participant, &topic).unwrap();
+        let reader = crate::Reader::new(&topic).unwrap();
+        let writer = crate::Writer::new(&topic).unwrap();
 
         let mask = state::sample::Stale | state::instance::Any | state::view::Any;
 
