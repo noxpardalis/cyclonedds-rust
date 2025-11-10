@@ -19,6 +19,18 @@ pub mod topic {
         pub message: String,
     }
 
+    impl crate::Topicable for Data {
+        type Key = ();
+
+        fn from_key(_: &Self::Key) -> Self {
+            Default::default()
+        }
+
+        fn as_key(&self) -> Self::Key {
+            ()
+        }
+    }
+
     pub fn unique_name() -> String {
         let uuid = Uuid::new_v4();
         uuid.to_string()

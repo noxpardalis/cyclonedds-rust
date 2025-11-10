@@ -19,6 +19,22 @@ pub mod topic {
         pub message: String,
     }
 
+    impl cyclonedds::Topicable for Data {
+        type Key = (u32, i32);
+
+        fn from_key(key: &Self::Key) -> Self {
+            Self {
+                x: key.0,
+                y: key.1,
+                ..Default::default()
+            }
+        }
+
+        fn as_key(&self) -> Self::Key {
+            (self.x, self.y)
+        }
+    }
+
     pub fn unique_name() -> String {
         let uuid = Uuid::new_v4();
         uuid.to_string()
