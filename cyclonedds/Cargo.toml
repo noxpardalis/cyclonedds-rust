@@ -9,6 +9,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
+byteorder = "1.5.0"
 cyclonedds-sys = { path = "../cyclonedds-sys" }
 serde = "1.0.228"
 
