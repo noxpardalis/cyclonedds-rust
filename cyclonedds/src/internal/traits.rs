@@ -16,3 +16,19 @@ impl<T: std::hash::Hash> Hash32 for T {
         hash
     }
 }
+
+pub trait CdrHeader {
+    fn cdr_header() -> [u8; 2];
+}
+
+impl CdrHeader for byteorder::LittleEndian {
+    fn cdr_header() -> [u8; 2] {
+        [0x00, 0x01]
+    }
+}
+
+impl CdrHeader for byteorder::BigEndian {
+    fn cdr_header() -> [u8; 2] {
+        [0x00, 0x00]
+    }
+}
