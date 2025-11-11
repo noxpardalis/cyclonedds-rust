@@ -17,4 +17,5 @@
 //! **Use at your own risk.**
 
 pub mod ffi;
+pub mod key_hash;
 pub mod traits;

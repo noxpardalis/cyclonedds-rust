@@ -11,7 +11,9 @@ version.workspace = true
 [dependencies]
 bitflags = "2.10.0"
 byteorder = "1.5.0"
+cdr-encoding = "0.10.2"
 cyclonedds-sys = { path = "../cyclonedds-sys" }
+md-5 = "0.10.6"
 serde = "1.0.228"
 
 [dev-dependencies]
