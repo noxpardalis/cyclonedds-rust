@@ -12,6 +12,7 @@ version.workspace = true
 name = "cyclonedds"
 
 [dependencies]
+byteorder = "1.5.0"
 cyclonedds-sys = { workspace = true }
 serde = "1.0.228"
 
