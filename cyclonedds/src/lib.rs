@@ -1,5 +1,6 @@
 #![deny(unsafe_code)]
 
+pub mod cdr_bounds;
 mod error;
 
 pub use error::{Error, Result};
