@@ -40,6 +40,14 @@ let
       actionlint.enable = true;
       # begin-sorted end
     };
+    settings.formatter = {
+      rustfmt = {
+        options = [
+          "--config-path"
+          "${../rustfmt.toml}"
+        ];
+      };
+    };
   };
   formatter = treefmtEval.config.build.wrapper;
 in
