@@ -1,0 +1,25 @@
+first-commit-is-empty: false
+starting-from: 37e28b4a5b029728f319fdd6463ba2474df4de19
+summary:
+  first-word-is-simple-verb: true
+  first-word-capitalization: "upper"
+trailers:
+  Commit-type:
+    mandatory: true
+    singular: true
+    values:
+      # keep-sorted start
+      - build
+      - chore
+      - ci
+      - docs
+      - feature
+      - fix
+      - test
+      # keep-sorted end
+  Scope:
+    values:
+      # keep-sorted start
+      - cyclonedds
+      - cyclonedds-sys
+      # keep-sorted end
