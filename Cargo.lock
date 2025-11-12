@@ -116,10 +116,20 @@ dependencies = [
  "bitflags",
  "byteorder",
  "cdr-encoding",
+ "cyclonedds-derive",
  "cyclonedds-sys",
  "md-5",
  "serde",
  "uuid",
+]
+
+[[package]]
+name = "cyclonedds-derive"
+version = "0.0.1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

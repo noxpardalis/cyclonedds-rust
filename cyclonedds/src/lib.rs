@@ -23,6 +23,7 @@ mod topicable;
 mod waitset;
 mod writer;
 
+pub use cyclonedds_derive::Topicable;
 pub use domain::Domain;
 pub use duration::Duration;
 pub use error::{Error, Result};
