@@ -9,23 +9,22 @@ pub mod domain {
 pub mod topic {
     use uuid::Uuid;
 
-    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq, Default)]
+    #[derive(
+        cyclonedds::Topicable,
+        Debug,
+        Clone,
+        serde::Serialize,
+        serde::Deserialize,
+        Eq,
+        PartialEq,
+        Default,
+    )]
     pub struct Data {
+        #[key]
         pub x: u32,
+        #[key]
         pub y: i32,
         pub message: String,
-    }
-
-    impl cyclonedds::Topicable for Data {
-        type Key = ();
-
-        fn from_key(_: &Self::Key) -> Self {
-            Default::default()
-        }
-
-        fn into_key(&self) -> Self::Key {
-            ()
-        }
     }
 
     pub fn unique_name() -> String {
