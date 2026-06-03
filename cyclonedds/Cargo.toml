@@ -25,6 +25,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 uuid = { version = "1.19.0", features = ["v4"] }
 
 [features]
+vendored = ["cyclonedds-sys/vendored"]
 internal = []
 
 [lints]
