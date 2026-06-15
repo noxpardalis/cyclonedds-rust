@@ -863,6 +863,16 @@ mod tests {
     }
 
     #[test]
+    #[should_panic = "unable to safely create std::ffi::CString from partition name"]
+    fn test_qos_set_partition_with_invalid_name() {
+        let partition = policy::Partition {
+            partitions: vec!["A".to_string(), "\0".to_string()],
+        };
+        let qos = QoS::new().with_partition(partition.clone());
+        assert_eq!(qos.partition, Some(partition));
+    }
+
+    #[test]
     fn test_qos_set_reliability() {
         let reliability = policy::Reliability::BestEffort;
         let qos = QoS::new().with_reliability(reliability);
