@@ -27,11 +27,11 @@ via the `vendored` feature. Then add the package to your `Cargo.toml` via:
 #
 # NOTE: you can also point to Cyclone DDS using the `CYCLONEDDS_HOME` variable if
 # performing a full installation is undesirable.
-eclipse-cyclonedds = "0.0.1"
+eclipse-cyclonedds = "0.0.2"
 
 # Using the `vendored` feature will result in us compiling and linking in a version
 # of Cyclone DDS for you.
-eclipse-cyclonedds = { version = "0.0.1", features = ["vendored"] }
+eclipse-cyclonedds = { version = "0.0.2", features = ["vendored"] }
 ```
 
 Then see [the example](#example) and [the docs][docs.rs] to get started.
