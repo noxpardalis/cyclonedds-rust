@@ -383,9 +383,9 @@ impl AsFfi for Partition {
         self.partitions
             .iter()
             .map(|partition| {
-                std::ffi::CString::new(partition.as_str()).expect(
-                    "TODO should this be moved to the construction of the partition policy?",
-                )
+                std::ffi::CString::new(partition.as_str()).unwrap_or_else(|err| panic!(
+                    "unable to safely create std::ffi::CString from partition name: {partition:?}: {err}"
+                ))
             })
             .collect()
     }
@@ -711,9 +711,11 @@ impl AsFfi for EntityName {
 
     #[inline]
     fn as_ffi(&self) -> Self::Target<'_> {
-        // TODO should this be moved to the construction of the name policy or deferred
-        // to the set_qos + construction of the objects with the QoS?O
-        std::ffi::CString::new(self.name.as_str())
-            .expect("unable to safely create std::ffi::CString from entity name")
+        std::ffi::CString::new(self.name.as_str()).unwrap_or_else(|err| {
+            panic!(
+                "unable to safely create std::ffi::CString from entity name: {:?}: {err}",
+                self.name
+            )
+        })
     }
 }
