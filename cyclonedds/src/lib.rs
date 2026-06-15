@@ -68,7 +68,11 @@
 //! [`ReadConditions`](ReadCondition), and [`QueryConditions`](QueryCondition):
 //! Mechanisms to trigger the condition associated with a waitset.
 //!
-//! See the [DDS Specification](https://www.omg.org/spec/DDS/1.4/About-DDS/) and the [OMG DDS Wiki](https://www.omgwiki.org/ddsf/doku.php?id=ddsf:public:guidebook:01_front:4_toc) for these other elements and see the rest of the Rust Documentation for what is supported by this API.//!
+//! See the [DDS Specification](https://www.omg.org/spec/DDS/1.4/About-DDS/) and the
+//! [OMG DDS Wiki](https://www.omgwiki.org/ddsf/doku.php?id=ddsf:public:guidebook:01_front:4_toc)
+//! for these other elements and see the rest of the Rust Documentation for what
+//! is supported by this API.
+//!
 //!
 //! # Getting started
 //!
