@@ -84,9 +84,10 @@ where
     drop(sertype);
 }
 
+/// Zero out samples.
 ///
-/// TODO: validate what the purpose of this is in the actual functioning of
-/// Cyclone? The C++ API also maps this to a no-op.
+/// This is used for generating samples from just a key value and in cleaning up
+/// after a loan is returned.
 pub unsafe extern "C" fn zero_samples<T>(
     _sertype: *const cyclonedds_sys::ddsi_sertype,
     samples: *mut std::ffi::c_void,
@@ -372,8 +373,6 @@ where
         false
     } else {
         let sample = unsafe { &*(sample.cast::<InternalSample<'_, T>>()) };
-        // TODO verify if the to_writer interface errors if it reaches the bounds of the
-        // buffer.
         match (
             crate::internal::serdata::Kind::try_from(serdata_kind),
             sample,

@@ -55,7 +55,7 @@ where
     u32::try_from(
         serdata
             .serialized()
-            .expect("unable to serialize data") // TODO pass this back out somehow?
+            .expect("unable to serialize data")
             .len(),
     )
     .expect("serialized data out of bounds")
@@ -498,8 +498,10 @@ where
 /// Deallocate a [`Serdata`].
 ///
 /// ## Safety
-/// `serdata` must point to a valid previously allocated [`Serdata`].
-/// TODO.
+/// - `serdata` must be a non-null pointer to a previously allocated [`Serdata<T>`].
+/// - Cyclone DDS must call this only after the [`ddsi_serdata`][cyclonedds_sys::ddsi_serdata]
+///   reference count has reached zero. After this call, no other references or serialized-data
+///   loans may be used, and the pointer must not be passed to this function again.
 pub unsafe extern "C" fn free<T>(serdata: *mut cyclonedds_sys::ddsi_serdata)
 where
     T: crate::Topicable,
@@ -520,8 +522,11 @@ where
 /// the null terminator.
 ///
 /// ## Safety
-/// `serdata` must point to a valid previously allocated [`Serdata`].
-/// TODO.
+/// - `_sertype` must be either the [`Sertype<T>`] for `serdata` or the compatible type supplied by
+///   Cyclone DDS when printing untyped serdata.
+/// - `serdata` must be a non-null pointer to a fully-initialized [`Serdata<T>`].
+/// - `buffer` must be non-null, valid for writes of `length` bytes, and `length` must be greater
+///   than zero so the required trailing NULL terminator can be written.
 pub unsafe extern "C" fn print<T>(
     _sertype: *const cyclonedds_sys::ddsi_sertype,
     serdata: *const cyclonedds_sys::ddsi_serdata,
