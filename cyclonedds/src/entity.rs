@@ -25,7 +25,12 @@ pub struct EntityId {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
 }
 
-// TODO should the Entity trait be sealed?
+mod private {
+    /// Private trait for sealing downstream implementation of the
+    /// [`Entity`](super::Entity) trait.
+    pub trait Sealed {}
+}
+
 /// Common interface implemented by all members of the DDS entity hierarchy.
 ///
 /// - [`Participant`](crate::Participant): the root entity representing
@@ -51,7 +56,7 @@ pub struct EntityId {
 ///       - [`QueryCondition<T, F>`](crate::QueryCondition): filters
 ///         [`Reader`](crate::Reader) samples by [`sample state`](crate::State)
 ///         and a predicate.
-pub trait Entity {
+pub trait Entity: private::Sealed {
     /// Returns the [`EntityId`] of this entity.
     ///
     /// # Examples
@@ -351,6 +356,8 @@ pub trait Entity {
 
 macro_rules! impl_entity {
     ($ty:ty) => {
+        impl private::Sealed for $ty {}
+
         impl Entity for $ty {
             fn id(&self) -> EntityId {
                 EntityId { inner: self.inner }
@@ -358,6 +365,8 @@ macro_rules! impl_entity {
         }
     };
     ($ty:ty where $($bounds:tt)*) => {
+        impl<$($bounds)*> private::Sealed for $ty {}
+
         impl<$($bounds)*> Entity for $ty {
             fn id(&self) -> EntityId {
                 EntityId { inner: self.inner }
