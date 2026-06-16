@@ -201,10 +201,8 @@ pub unsafe extern "C" fn free_samples<T>(
 /// Compares two [`Sertype`] instances for equality.
 ///
 /// # Safety
-/// - The `lhs` and `rhs` must point to `Sertype`s previously constructed by the
-///   Rust API.
-/// - The `type_name` field of the pointers must be a valid null-terminated
-///   string.
+/// - The `lhs` and `rhs` must point to `Sertype`s previously constructed by the Rust API.
+/// - The `type_name` field of the pointers must be a valid null-terminated string.
 pub unsafe extern "C" fn equal<T>(
     lhs: *const cyclonedds_sys::ddsi_sertype,
     rhs: *const cyclonedds_sys::ddsi_sertype,

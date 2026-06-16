@@ -24,10 +24,10 @@ use crate::{Reader, Result};
 ///
 /// In practice, this means the callback must be either:
 ///
-///   - a [function item](https://doc.rust-lang.org/reference/types/function-item.html),
-///     which is always zero-sized, or
-///   - a [closure](https://doc.rust-lang.org/reference/types/closure.html) that
-///     does not capture any variables from its environment
+///   - a [function item](https://doc.rust-lang.org/reference/types/function-item.html), which is
+///     always zero-sized, or
+///   - a [closure](https://doc.rust-lang.org/reference/types/closure.html) that does not capture
+///     any variables from its environment
 ///
 /// The following example will **fail to compile** because the closure captures
 /// `x`, making it non-zero-sized:

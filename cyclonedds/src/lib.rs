@@ -42,17 +42,15 @@
 //! a collection of
 //! [`QoS policies`](qos::policy) that configure characteristics such as:
 //!
-//! - [`durability`](qos::policy::Durability) (whether late-joining readers
-//!   receive historical samples)
+//! - [`durability`](qos::policy::Durability) (whether late-joining readers receive historical
+//!   samples)
 //!
-//! - [`reliability`](qos::policy::Reliability) (best-effort vs reliable
-//!   delivery)
+//! - [`reliability`](qos::policy::Reliability) (best-effort vs reliable delivery)
 //!
-//! - [`history depth`](qos::policy::History) (the number of samples to store in
-//!   history)
+//! - [`history depth`](qos::policy::History) (the number of samples to store in history)
 //!
-//! - [`deadline`](qos::policy::Deadline) (whether a signal should be generated
-//!   when a sample is not received within a specified period)
+//! - [`deadline`](qos::policy::Deadline) (whether a signal should be generated when a sample is not
+//!   received within a specified period)
 //!
 //! Policies are set independently on the writer and reader side, and
 //! compatibility is checked at discovery time. A writer's offered [`QoS`] must
@@ -104,8 +102,7 @@
 //! # struct MyData {
 //! #     x: i32,
 //! # }
-//! use cyclonedds::qos;
-//! use cyclonedds::{QoS, Reader, Subscriber, Topic, Writer};
+//! use cyclonedds::{QoS, Reader, Subscriber, Topic, Writer, qos};
 //!
 //! let topic = Topic::<MyData>::new(&participant, "MyTopic")?;
 //!

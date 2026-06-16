@@ -187,15 +187,14 @@ where
 ///
 /// ## Safety
 /// - `serdata` must be a non-null pointer to a fully-initialized [`Serdata`].
-/// - `containers` must point to a valid contiguous array of `ddsrt_iovec_t`
-///   structures of length `containers_len`. Each `iov_base` must be a valid
-///   pointer to `iov_len` bytes of readable memory.
-/// - `size` must be less than or equal to the total number of bytes described
-///   by the `ddsrt_iovec_t` array, or else out-of-bounds memory will be
-///   accessed when copying data.
-/// - `T` must match the expected deserialized type, and the deserialization
-///   must not violate any invariants assumed by the type (e.g., panic during
-///   construction or interior mutability issues).
+/// - `containers` must point to a valid contiguous array of `ddsrt_iovec_t` structures of length
+///   `containers_len`. Each `iov_base` must be a valid pointer to `iov_len` bytes of readable
+///   memory.
+/// - `size` must be less than or equal to the total number of bytes described by the
+///   `ddsrt_iovec_t` array, or else out-of-bounds memory will be accessed when copying data.
+/// - `T` must match the expected deserialized type, and the deserialization must not violate any
+///   invariants assumed by the type (e.g., panic during construction or interior mutability
+///   issues).
 pub unsafe extern "C" fn from_ser_iov<T>(
     sertype: *const cyclonedds_sys::ddsi_sertype,
     kind: cyclonedds_sys::ddsi_serdata_kind,
@@ -363,8 +362,7 @@ pub unsafe extern "C" fn to_ser<T>(
 ///
 /// ## Safety
 /// - `serdata`  must be a non-null pointer to a fully-initialized [`Serdata`].
-/// - `container` must be a non-null pointer to an
-///   [`cyclonedds_sys::ddsrt_iovec_t`].
+/// - `container` must be a non-null pointer to an [`cyclonedds_sys::ddsrt_iovec_t`].
 pub unsafe extern "C" fn to_ser_ref<T>(
     serdata: *const cyclonedds_sys::ddsi_serdata,
     offset: usize,
@@ -415,10 +413,8 @@ pub unsafe extern "C" fn to_ser_unref<T>(
 /// Returns `true` if a sample was present and copied, `false` otherwise.
 ///
 /// ## Safety
-/// - `sertype` must be a valid, non-null pointer to a heap-allocated
-///   [`Sertype`].
-/// - `sample` must be a valid, non-null pointer that can hold a value of size
-///   `T`.
+/// - `sertype` must be a valid, non-null pointer to a heap-allocated [`Sertype`].
+/// - `sample` must be a valid, non-null pointer that can hold a value of size `T`.
 pub unsafe extern "C" fn to_sample<T>(
     serdata: *const cyclonedds_sys::ddsi_serdata,
     sample: *mut std::ffi::c_void,
@@ -457,8 +453,7 @@ where
 /// Create an untyped sertype based on provided typed [`Serdata`].
 ///
 /// ## Safety
-/// - `sertype` must be a valid, non-null pointer to a heap-allocated
-///   [`Sertype`].
+/// - `sertype` must be a valid, non-null pointer to a heap-allocated [`Sertype`].
 pub unsafe extern "C" fn to_untyped<T>(
     serdata: *const cyclonedds_sys::ddsi_serdata,
 ) -> *mut cyclonedds_sys::ddsi_serdata

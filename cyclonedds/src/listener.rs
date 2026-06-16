@@ -37,8 +37,7 @@
 //! constructing separate listeners for each level.
 //!
 //! ```
-//! use cyclonedds::Listener;
-//! use cyclonedds::{Domain, Participant, Subscriber};
+//! use cyclonedds::{Domain, Listener, Participant, Subscriber};
 //!
 //! let domain = Domain::default();
 //!
@@ -86,16 +85,15 @@
 //! and [`Writer<T>`](crate::Writer) that all have different types for `<T>`. As
 //! a result, one of two obvious solutions presents itself:
 //!
-//! - Allow these higher-level types to only have callbacks of effectively
-//!   [`std::any::Any`] and require the callback to attempt to convert. This
-//!   maps the most correctly onto how the API is designed in the specification
-//!   but would greatly complicate the internal dispatching of these listeners.
+//! - Allow these higher-level types to only have callbacks of effectively [`std::any::Any`] and
+//!   require the callback to attempt to convert. This maps the most correctly onto how the API is
+//!   designed in the specification but would greatly complicate the internal dispatching of these
+//!   listeners.
 //!
-//! - Maintain a typed registry of all the different types of callbacks that are
-//!   attached on the higher-level untyped subscribers and then add code to
-//!   check if the event that fired corresponds to a type whose callback was
-//!   registered. This would work but introduces semantics that do not match the
-//!   other DDS implementations.
+//! - Maintain a typed registry of all the different types of callbacks that are attached on the
+//!   higher-level untyped subscribers and then add code to check if the event that fired
+//!   corresponds to a type whose callback was registered. This would work but introduces semantics
+//!   that do not match the other DDS implementations.
 //!
 //! </div>
 //!
@@ -103,8 +101,7 @@
 //!
 //! ```
 //! use cyclonedds::entity::Entity;
-//! use cyclonedds::{Reader, Topic, Writer};
-//! use cyclonedds::{ReaderListener, TopicListener, WriterListener};
+//! use cyclonedds::{Reader, ReaderListener, Topic, TopicListener, Writer, WriterListener};
 //! # #[derive(
 //! #     cyclonedds::Topicable, serde::Serialize, serde::Deserialize, Clone, Debug, Default,
 //! # )]

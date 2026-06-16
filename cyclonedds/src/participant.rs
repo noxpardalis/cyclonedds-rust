@@ -178,7 +178,8 @@ impl<'d> Participant<'d> {
     /// # Examples
     ///
     /// ```
-    /// use cyclonedds::{Domain, Listener, Participant, listener::SubscriberListener};
+    /// use cyclonedds::listener::SubscriberListener;
+    /// use cyclonedds::{Domain, Listener, Participant};
     ///
     /// let domain = Domain::default();
     /// let mut participant = Participant::new(&domain)?;

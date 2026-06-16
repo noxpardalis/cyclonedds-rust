@@ -167,10 +167,8 @@ impl<'d, 'p> Publisher<'d, 'p> {
     /// # Examples
     ///
     /// ```
-    /// use cyclonedds::{
-    ///     Publisher, QoS,
-    ///     qos::policy::{Durability, Presentation},
-    /// };
+    /// use cyclonedds::qos::policy::{Durability, Presentation};
+    /// use cyclonedds::{Publisher, QoS};
     /// # use cyclonedds::{Domain, Participant};
     /// # let domain = Domain::default();
     /// # let participant = Participant::new(&domain)?;

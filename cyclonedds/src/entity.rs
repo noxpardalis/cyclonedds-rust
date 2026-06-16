@@ -33,29 +33,22 @@ mod private {
 
 /// Common interface implemented by all members of the DDS entity hierarchy.
 ///
-/// - [`Participant`](crate::Participant): the root entity representing
-///   membership in a domain.
-///   - [`WaitSet`](crate::WaitSet): blocks until one or more attached
-///     conditions are triggered.
-///   - [`GuardCondition`](crate::GuardCondition): a manually triggered
-///     condition for use with a [`WaitSet`](crate::WaitSet).
-///   - [`Topic<T>`](crate::Topic): names and types a data channel for a
-///     specific payload type `T`.
-///   - [`Publisher`](crate::Publisher): groups [`Writers`](crate::Writer) and
-///     controls their shared [`QoS`](crate::QoS).
-///     - [`Writer<T>`](crate::Writer): publishes samples of type `T` to a
-///       [`Topic`](crate::Topic).
-///   - [`Subscriber`](crate::Subscriber): groups [`Readers`](crate::Reader) and
-///     controls their shared [`QoS`](crate::QoS).
-///     - [`Reader<T>`](crate::Reader): receives samples of type `T` from a
-///       [`Topic`](crate::Topic).
-///       - [`ReadCondition<T>`](crate::ReadCondition): filters
-///         [`Reader`](crate::Reader) samples by
+/// - [`Participant`](crate::Participant): the root entity representing membership in a domain.
+///   - [`WaitSet`](crate::WaitSet): blocks until one or more attached conditions are triggered.
+///   - [`GuardCondition`](crate::GuardCondition): a manually triggered condition for use with a
+///     [`WaitSet`](crate::WaitSet).
+///   - [`Topic<T>`](crate::Topic): names and types a data channel for a specific payload type `T`.
+///   - [`Publisher`](crate::Publisher): groups [`Writers`](crate::Writer) and controls their shared
+///     [`QoS`](crate::QoS).
+///     - [`Writer<T>`](crate::Writer): publishes samples of type `T` to a [`Topic`](crate::Topic).
+///   - [`Subscriber`](crate::Subscriber): groups [`Readers`](crate::Reader) and controls their
+///     shared [`QoS`](crate::QoS).
+///     - [`Reader<T>`](crate::Reader): receives samples of type `T` from a [`Topic`](crate::Topic).
+///       - [`ReadCondition<T>`](crate::ReadCondition): filters [`Reader`](crate::Reader) samples by
 ///         [`sample`](crate::state::sample), [`view`](crate::state::view), and
 ///         [`instance`](crate::state::instance) state.
-///       - [`QueryCondition<T, F>`](crate::QueryCondition): filters
-///         [`Reader`](crate::Reader) samples by [`sample state`](crate::State)
-///         and a predicate.
+///       - [`QueryCondition<T, F>`](crate::QueryCondition): filters [`Reader`](crate::Reader)
+///         samples by [`sample state`](crate::State) and a predicate.
 pub trait Entity: private::Sealed {
     /// Returns the [`EntityId`] of this entity.
     ///
@@ -130,12 +123,11 @@ pub trait Entity: private::Sealed {
     ///
     /// # Errors
     ///
-    /// - Returns an [`Error`](crate::Error) if the status bits of the
-    ///   corresponding entity could not be retrieved (e.g. the entity no longer
-    ///   exists).
+    /// - Returns an [`Error`](crate::Error) if the status bits of the corresponding entity could
+    ///   not be retrieved (e.g. the entity no longer exists).
     ///
-    /// - Returns [`BadParameter`](crate::Error::BadParameter) if the retrieved
-    ///   bits do not correspond to a valid [`Status`].
+    /// - Returns [`BadParameter`](crate::Error::BadParameter) if the retrieved bits do not
+    ///   correspond to a valid [`Status`].
     ///
     /// # Examples
     ///
@@ -181,13 +173,12 @@ pub trait Entity: private::Sealed {
     ///
     /// # Errors
     ///
-    /// - Returns an [`Error`](crate::Error) if the status bits of the
-    ///   corresponding entity could not be retrieved (e.g. the entity no longer
-    ///   exists or the status mask contains entries that do not apply to the
-    ///   entity type).
+    /// - Returns an [`Error`](crate::Error) if the status bits of the corresponding entity could
+    ///   not be retrieved (e.g. the entity no longer exists or the status mask contains entries
+    ///   that do not apply to the entity type).
     ///
-    /// - Returns [`BadParameter`](crate::Error::BadParameter) if the retrieved
-    ///   bits do not correspond to a valid [`Status`].
+    /// - Returns [`BadParameter`](crate::Error::BadParameter) if the retrieved bits do not
+    ///   correspond to a valid [`Status`].
     ///
     /// # Examples
     ///
@@ -229,12 +220,11 @@ pub trait Entity: private::Sealed {
     ///
     /// # Errors
     ///
-    /// - Returns an [`Error`](crate::Error) if the status bits of the
-    ///   corresponding entity could not be retrieved (e.g. the entity no longer
-    ///   exists).
+    /// - Returns an [`Error`](crate::Error) if the status bits of the corresponding entity could
+    ///   not be retrieved (e.g. the entity no longer exists).
     ///
-    /// - Returns [`BadParameter`](crate::Error::BadParameter) if the retrieved
-    ///   bits do not correspond to a valid [`Status`].
+    /// - Returns [`BadParameter`](crate::Error::BadParameter) if the retrieved bits do not
+    ///   correspond to a valid [`Status`].
     ///
     /// # Examples
     ///
@@ -275,12 +265,11 @@ pub trait Entity: private::Sealed {
     ///
     /// # Errors
     ///
-    /// - Returns an [`Error`](crate::Error) if the status mask of the
-    ///   corresponding entity could not be retrieved (e.g. the entity no longer
-    ///   exists).
+    /// - Returns an [`Error`](crate::Error) if the status mask of the corresponding entity could
+    ///   not be retrieved (e.g. the entity no longer exists).
     ///
-    /// - Returns [`BadParameter`](crate::Error::BadParameter) if the retrieved
-    ///   bits do not correspond to a valid [`Status`].
+    /// - Returns [`BadParameter`](crate::Error::BadParameter) if the retrieved bits do not
+    ///   correspond to a valid [`Status`].
     ///
     /// # Examples
     /// ```
@@ -321,9 +310,8 @@ pub trait Entity: private::Sealed {
     ///
     /// # Errors
     ///
-    /// - Returns an [`Error`](crate::Error) if the status mask of the
-    ///   corresponding entity could not be set (e.g. the entity no longer
-    ///   exists).
+    /// - Returns an [`Error`](crate::Error) if the status mask of the corresponding entity could
+    ///   not be set (e.g. the entity no longer exists).
     ///
     /// # Examples
     /// ```
