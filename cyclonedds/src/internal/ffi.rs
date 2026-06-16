@@ -731,12 +731,8 @@ where
     let buffer = unsafe { &mut *(arg.cast::<Vec<crate::sample::SampleOrKey<T>>>()) };
 
     let info = unsafe { &*info };
-    let mut _sertype = std::mem::ManuallyDrop::new(unsafe {
-        Box::from_raw(sertype as *mut crate::internal::sertype::Sertype<T>)
-    });
-    let mut serdata = std::mem::ManuallyDrop::new(unsafe {
-        Box::from_raw(serdata.cast::<crate::internal::serdata::Serdata<T>>())
-    });
+    let _sertype = unsafe { &mut *(sertype as *mut crate::internal::sertype::Sertype<T>) };
+    let serdata = unsafe { &mut *(serdata.cast::<crate::internal::serdata::Serdata<T>>()) };
 
     let valid_data = info.valid_data;
     let info: crate::sample::Info = info.into();
