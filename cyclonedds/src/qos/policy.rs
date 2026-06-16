@@ -4,11 +4,14 @@
 //! in the DCPS specification. Policies are set on a [`QoS`](crate::QoS)
 //! instance via its
 //! `with_*` methods and applied to entities through their builders.
+//! Some policies only apply to specific entity types; when applied
+//! they cascade to the appropriate entities automatically.
 //!
-//! Not all policies apply to all entity types. Refer to the DDS specification
-//! or Cyclone DDS documentation for the applicability of each policy.
-
-// TODO add the details on what QoS policies apply to what types here too.
+//! See to the [DDS specification] and the [Cyclone DDS documentation] for
+//! the applicability and semantics of each policy.
+//!
+//! [DDS specification]: https://www.omg.org/spec/DDS/1.4/About-DDS/
+//! [Cyclone DDS documentation]: https://cyclonedds.io/docs
 
 use crate::Duration;
 use crate::internal::traits::AsFfi;
