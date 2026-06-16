@@ -14,6 +14,7 @@ The official Rust binding for [Eclipse Cyclone DDS][cyclonedds-github].
 - [Quick Start](#quick-start)
 - [Overview of DDS](#overview-of-dds)
 - [Example](#example)
+- [Common footguns](#common-footguns)
 
 ## Quick Start
 
@@ -117,8 +118,6 @@ See the [DDS Specification][dds-spec] and the [OMG DDS Wiki][omg-dds-wiki] for
 these other elements and see the [Rust Documentation][docs.rs] for what is
 supported by this API.
 
-<!-- TODO add details on the footguns (default QoS, read and take semantics) -->
-
 ## Example
 
 ```rust
@@ -202,6 +201,76 @@ fn main() -> cyclonedds::Result<()> {
     Ok(())
 }
 ```
+
+## Common footguns
+
+### QoS mismatch
+
+A `Writer` and `Reader` only exchange samples after discovery finds matching
+topic names, compatible type information, and compatible `QoS` policies. If
+samples are not arriving, check the effective `QoS` on both endpoints before
+assuming the network or serialization layer is at fault.
+
+### QoS offer/request asymmetry
+
+`QoS` compatibility follows an offer/request model: the writer offers a `QoS`
+and the reader requests one. Compatibility is asymmetric. A writer offering
+`Reliable` delivery is compatible with a reader requesting `BestEffort`, but not
+the inverse. The same asymmetry applies to `Durability`: a writer offering
+`TransientLocal` is compatible with a reader requesting `Volatile`, but a reader
+requesting `TransientLocal` will not match a writer offering only `Volatile`.
+
+### Durability and late-joining readers
+
+The default durability **does not** make DDS behave like a retained-message
+broker. A reader that joins after a writer has already published will not
+receive historical samples unless both sides are configured with compatible
+durability (`TransientLocal` or stronger) and sufficient history depth.
+`Volatile` durability, the default, discards samples the moment no matched
+reader exists to receive them.
+
+### Reliability and history depth
+
+Reliable delivery asks the middleware to retransmit missing samples, but does
+not provide infinite buffering. The default history policy is `KeepLast` with a
+depth of 1, so only the most recent sample is retained per writer instance.
+History depth, resource limits, and slow readers all constrain how much data the
+middleware retains. A writer paired with a slow reliable reader may block or
+drop samples once its send queue is exhausted, depending on the
+`max_blocking_time` and resource limit settings in effect.
+
+### Domain ID isolation
+
+Participants on different domain IDs are completely isolated. Discovery will not
+cross domain boundaries, so two nodes that are otherwise correctly configured
+will be invisible to each other if their domain IDs differ.
+
+### Partition mismatch
+
+Partitions introduce a second matching layer on top of topic name and `QoS`. A
+writer and reader on the same topic will not exchange samples unless they share
+at least one partition string note that the empty string `""` a valid and
+distinct partition.
+
+### Liveliness
+
+`Liveliness` configuration determines when the middleware considers a writer
+dead. If the lease duration is shorter than the writer's actual publish rate,
+the writer may appear to die and recover under load, causing spurious
+matched/unmatched transitions on the reader side.
+
+### `read` vs `take`
+
+`read` and `take` have different cache semantics. `read` leaves matching samples
+in the reader cache, so subsequent reads with overlapping state masks may return
+the same samples again. `take` removes them, making those samples unavailable to
+any later call. Use `take` for queue-like consumption and `read` when you need
+to inspect the current state without draining it.
+
+Cyclone DDS also includes a `peek` call which reads without updating any sample
+or view state, so repeated peeks always see the same samples regardless of state
+masks. Use it for non-destructive inspection when state transitions are
+undesirable.
 
 ## Minimum supported Rust version (MSRV)
 
