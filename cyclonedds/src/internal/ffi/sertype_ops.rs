@@ -210,8 +210,8 @@ pub unsafe extern "C" fn equal<T>(
 where
     T: crate::Topicable,
 {
-    let lhs = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(lhs as *mut Sertype<T>) });
-    let rhs = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(rhs as *mut Sertype<T>) });
+    let lhs = unsafe { &mut *(lhs as *mut Sertype<T>) };
+    let rhs = unsafe { &mut *(rhs as *mut Sertype<T>) };
 
     // Also base this on the type support identifier?
     unsafe { CStr::from_ptr(lhs.inner.type_name) == CStr::from_ptr(rhs.inner.type_name) }
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn hash<T>(sertype: *const cyclonedds_sys::ddsi_sertype) -
 where
     T: crate::Topicable,
 {
-    let sertype = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+    let sertype = unsafe { &mut *(sertype as *mut Sertype<T>) };
 
     let name = unsafe { CStr::from_ptr(sertype.inner.type_name) };
     let type_size = std::mem::size_of::<T>();

@@ -34,8 +34,8 @@ pub unsafe extern "C" fn eqkey<T>(
 where
     T: crate::Topicable,
 {
-    let mut lhs = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(lhs as *mut Serdata<T>) });
-    let mut rhs = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(rhs as *mut Serdata<T>) });
+    let lhs = unsafe { &mut *(lhs as *mut Serdata<T>) };
+    let rhs = unsafe { &mut *(rhs as *mut Serdata<T>) };
 
     lhs.key() == rhs.key()
 }
@@ -50,8 +50,7 @@ pub unsafe extern "C" fn get_size<T>(serdata: *const cyclonedds_sys::ddsi_serdat
 where
     T: crate::Topicable,
 {
-    let mut serdata =
-        std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
+    let serdata = unsafe { &mut *(serdata as *mut Serdata<T>) };
 
     u32::try_from(
         serdata
@@ -168,7 +167,7 @@ pub unsafe extern "C" fn from_ser<T>(
 where
     T: crate::Topicable,
 {
-    let sertype = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+    let sertype = unsafe { &mut *(sertype as *mut Sertype<T>) };
 
     if fragment_chain.is_null() {
         return std::ptr::null_mut();
@@ -177,7 +176,7 @@ where
     crate::internal::serdata::Kind::try_from(kind).map_or(std::ptr::null_mut(), |kind| {
         let fragment_chain = unsafe { &*fragment_chain };
         copy_from_fragment(fragment_chain, size).map_or(std::ptr::null_mut(), |buffer| {
-            from_ser_buffer(&sertype, kind, &buffer)
+            from_ser_buffer(sertype, kind, &buffer)
         })
     })
 }
@@ -205,7 +204,7 @@ pub unsafe extern "C" fn from_ser_iov<T>(
 where
     T: crate::Topicable,
 {
-    let sertype = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+    let sertype = unsafe { &mut *(sertype as *mut Sertype<T>) };
 
     crate::internal::serdata::Kind::try_from(kind).map_or(std::ptr::null_mut(), |kind| {
         let mut buffer: Vec<u8> = Vec::with_capacity(size);
@@ -242,7 +241,7 @@ where
             buffer.extend_from_slice(container);
             offset += len;
         }
-        from_ser_buffer(&sertype, kind, &buffer)
+        from_ser_buffer(sertype, kind, &buffer)
     })
 }
 
@@ -280,10 +279,10 @@ where
     T: crate::Topicable,
 {
     let force_md5 = T::FORCE_MD5_KEYHASH;
-    let sertype = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+    let sertype = unsafe { &mut *(sertype as *mut Sertype<T>) };
     let keyhash = unsafe { &*keyhash };
 
-    from_keyhash_with_mode::<T>(&sertype, keyhash, force_md5)
+    from_keyhash_with_mode::<T>(sertype, keyhash, force_md5)
 }
 
 /// Constructs a [`Serdata`] from a sample pointer, given a serialization kind.
@@ -301,38 +300,34 @@ where
     let sample = unsafe { &*(sample.cast::<InternalSample<'_, T>>()) };
     match (crate::internal::serdata::Kind::try_from(kind), sample) {
         (Ok(crate::internal::serdata::Kind::Data), InternalSample::SampleRef(sample)) => {
-            let sertype =
-                std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+            let sertype = unsafe { &mut *(sertype as *mut Sertype<T>) };
 
             let sample = SampleOrKey::new_sample((*sample).clone());
-            let serdata = Box::new(Serdata::new(sertype.as_ref(), sample));
+            let serdata = Box::new(Serdata::new(sertype, sample));
 
             Box::into_raw(serdata).cast()
         }
         (Ok(crate::internal::serdata::Kind::Data), InternalSample::Sample(sample)) => {
-            let sertype =
-                std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+            let sertype = unsafe { &mut *(sertype as *mut Sertype<T>) };
 
             let sample = SampleOrKey::new_sample(sample.clone());
-            let serdata = Box::new(Serdata::new(sertype.as_ref(), sample));
+            let serdata = Box::new(Serdata::new(sertype, sample));
 
             Box::into_raw(serdata).cast()
         }
         (Ok(crate::internal::serdata::Kind::Key), InternalSample::KeyRef(key)) => {
-            let sertype =
-                std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+            let sertype = unsafe { &mut *(sertype as *mut Sertype<T>) };
 
             let key = SampleOrKey::new_key((*key).clone());
-            let serdata = Box::new(Serdata::new(sertype.as_ref(), key));
+            let serdata = Box::new(Serdata::new(sertype, key));
 
             Box::into_raw(serdata).cast()
         }
         (Ok(crate::internal::serdata::Kind::Key), InternalSample::Key(key)) => {
-            let sertype =
-                std::mem::ManuallyDrop::new(unsafe { Box::from_raw(sertype as *mut Sertype<T>) });
+            let sertype = unsafe { &mut *(sertype as *mut Sertype<T>) };
 
             let key = SampleOrKey::new_key(key.clone());
-            let serdata = Box::new(Serdata::new(sertype.as_ref(), key));
+            let serdata = Box::new(Serdata::new(sertype, key));
 
             Box::into_raw(serdata).cast()
         }
@@ -372,8 +367,7 @@ pub unsafe extern "C" fn to_ser_ref<T>(
 where
     T: crate::Topicable,
 {
-    let mut serdata =
-        std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
+    let serdata = unsafe { &mut *(serdata as *mut Serdata<T>) };
     let container = unsafe { &mut *container };
 
     serdata
@@ -401,8 +395,7 @@ pub unsafe extern "C" fn to_ser_unref<T>(
 ) where
     T: crate::Topicable,
 {
-    let mut serdata =
-        std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata.cast::<Serdata<T>>()) });
+    let serdata = unsafe { &mut *(serdata.cast::<Serdata<T>>()) };
 
     crate::internal::ffi::ddsi_serdata_unref(&mut serdata.inner);
 }
@@ -427,8 +420,7 @@ where
     if sample.is_null() {
         false
     } else {
-        let mut serdata =
-            std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
+        let serdata = unsafe { &mut *(serdata as *mut Serdata<T>) };
 
         let sample = sample.cast::<InternalSample<'_, T>>();
         match serdata.kind() {
@@ -460,14 +452,12 @@ pub unsafe extern "C" fn to_untyped<T>(
 where
     T: crate::Topicable,
 {
-    let serdata = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
+    let serdata = unsafe { &mut *(serdata as *mut Serdata<T>) };
 
-    let sertype = std::mem::ManuallyDrop::new(unsafe {
-        Box::from_raw(serdata.inner.type_ as *mut Sertype<T>)
-    });
+    let sertype = unsafe { &mut *(serdata.inner.type_ as *mut Sertype<T>) };
 
     let mut untyped_serdata = Box::new(Serdata::new(
-        sertype.as_ref(),
+        sertype,
         SampleOrKey::new_key(serdata.sample.as_ref().key().clone()),
     ));
     untyped_serdata.inner.type_ = std::ptr::null_mut();
@@ -490,8 +480,7 @@ where
     if sample.is_null() {
         false
     } else {
-        let mut serdata =
-            std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
+        let serdata = unsafe { &mut *(serdata as *mut Serdata<T>) };
 
         let sample = sample.cast::<InternalSample<'_, T>>();
         match serdata.kind() {
@@ -542,7 +531,7 @@ pub unsafe extern "C" fn print<T>(
 where
     T: crate::Topicable,
 {
-    let serdata = std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
+    let serdata = unsafe { &mut *(serdata as *mut Serdata<T>) };
 
     let buffer = unsafe { std::slice::from_raw_parts_mut(buffer.cast(), length) };
     let mut cursor = std::io::Cursor::new(&mut *buffer);
@@ -577,8 +566,7 @@ pub unsafe extern "C" fn get_keyhash<T>(
 ) where
     T: crate::Topicable,
 {
-    let mut serdata =
-        std::mem::ManuallyDrop::new(unsafe { Box::from_raw(serdata as *mut Serdata<T>) });
+    let serdata = unsafe { &mut *(serdata as *mut Serdata<T>) };
     let keyhash = unsafe { &mut *keyhash };
 
     KeyHash::from_key::<T>(serdata.key(), force_md5)
