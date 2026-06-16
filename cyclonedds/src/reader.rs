@@ -112,9 +112,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// use cyclonedds::ReaderListener;
-    /// use cyclonedds::Subscriber;
     /// use cyclonedds::builder::ReaderBuilder;
+    /// use cyclonedds::{ReaderListener, Subscriber};
     /// # use cyclonedds::{Domain, Participant, Topic};
     /// # let domain = Domain::default();
     /// # let participant = Participant::new(&domain)?;
@@ -258,7 +257,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// use cyclonedds::{QoS, Reader, qos::policy::History};
+    /// use cyclonedds::qos::policy::History;
+    /// use cyclonedds::{QoS, Reader};
     ///
     /// # use cyclonedds::{Domain, Participant, Topic};
     /// # let domain = Domain::default();

@@ -383,9 +383,12 @@ impl AsFfi for Partition {
         self.partitions
             .iter()
             .map(|partition| {
-                std::ffi::CString::new(partition.as_str()).unwrap_or_else(|err| panic!(
-                    "unable to safely create std::ffi::CString from partition name: {partition:?}: {err}"
-                ))
+                std::ffi::CString::new(partition.as_str()).unwrap_or_else(|err| {
+                    panic!(
+                        "unable to safely create std::ffi::CString from partition name: \
+                         {partition:?}: {err}"
+                    )
+                })
             })
             .collect()
     }

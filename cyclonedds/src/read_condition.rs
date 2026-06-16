@@ -12,8 +12,7 @@ use crate::{Reader, Result, State};
 /// # Examples
 ///
 /// ```no_run
-/// use cyclonedds::state;
-/// use cyclonedds::{Duration, ReadCondition, WaitSet};
+/// use cyclonedds::{Duration, ReadCondition, WaitSet, state};
 /// # use cyclonedds::{Domain, Participant, Topic, Reader};
 /// # let domain = Domain::default();
 /// # let participant = Participant::new(&domain)?;

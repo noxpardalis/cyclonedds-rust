@@ -187,9 +187,9 @@ pub fn derive_topicable(input: TokenStream) -> TokenStream {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use syn::parse_quote;
+
+    use super::*;
 
     #[test]
     fn test_derive_parses_key_fields() {
