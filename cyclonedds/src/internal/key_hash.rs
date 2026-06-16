@@ -25,7 +25,9 @@ impl KeyHash {
                     // The CDR serialized form fits and can be used as the key hash but
                     // it must be padded to 16 bytes and those padding bytes must be zeroed.
                     serialized.resize(16.max(serialized.len()), 0);
-                    // TODO could this possibly fail?
+                    // This should only fail if `max_serialized_cdr_size()` is incorrect, e.g. it
+                    // reports a maximum size of 16 bytes or less while the serialized key is
+                    // actually larger than 16 bytes.
                     serialized.try_into().ok()?
                 };
 
