@@ -4,6 +4,8 @@
   '';
 
   inputs = {
+    # Specify that we need submodules for the vendored sources.
+    self.submodules = true;
     # Nix
     nixpkgs-stable.url = "github:nixos/nixpkgs?ref=nixos-26.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs?ref=nixos-unstable";
