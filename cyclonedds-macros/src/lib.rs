@@ -81,28 +81,38 @@ impl ToTokens for TopicableAttributes {
                 }
             });
 
-            tokens.extend(
-                quote! {
-                    #[allow(non_snake_case)]
+            let key_name = format!("Key<{ident}>");
+            let key_field_names = keys.iter().map(|f| &f.ident);
+            tokens.extend(quote! {
+                #[allow(non_snake_case)]
+                #[doc(hidden)]
+                mod #key_mod {
                     #[doc(hidden)]
-                    mod #key_mod {
-                        #[doc(hidden)]
-                        #[derive(Default, serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Hash)]
-                        pub struct Key {
-                            #(#key_field_defs),*
-                        }
+                    #[derive(Default, serde::Serialize, serde::Deserialize, Clone, PartialEq, Hash)]
+                    pub struct Key {
+                        #(#key_field_defs),*
+                    }
 
-                        impl ::cyclonedds::cdr_bounds::CdrBounds for Key {
-                            fn max_serialized_cdr_size() -> ::cyclonedds::cdr_bounds::CdrSize {
-                                #(#key_size_sum)+*
-                            }
-                            fn alignment() -> usize {
-                                0 #(.max(#key_alignment_max))*
-                            }
+                    impl std::fmt::Debug for Key {
+                        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                            let mut debug = f.debug_struct(#key_name);
+                            #(
+                                debug.field(stringify!(#key_field_names), &self.#key_field_names);
+                            )*
+                            debug.finish()
+                        }
+                    }
+
+                    impl ::cyclonedds::cdr_bounds::CdrBounds for Key {
+                        fn max_serialized_cdr_size() -> ::cyclonedds::cdr_bounds::CdrSize {
+                            #(#key_size_sum)+*
+                        }
+                        fn alignment() -> usize {
+                            0 #(.max(#key_alignment_max))*
                         }
                     }
                 }
-            );
+            });
             (
                 quote!(#key_mod::Key),
                 quote! {
