@@ -1,12 +1,12 @@
 # Procedural Macros for Eclipse Cyclone DDS
 
-[![License][epl-license-shield]][epl-license]
-[![License][edl-license-shield]][edl-license]
 [![Latest Version][crates.io-shield]][crates.io]
-[![Documentation][docs.rs-shield]][docs.rs]
 [![Build Status][check-workflow-status-shield]][check-workflow]
-[![Website][cyclonedds-homepage-shield]][cyclonedds-homepage]
 [![Community][community-shield]][community]
+[![Website][cyclonedds-homepage-shield]][cyclonedds-homepage]
+
+[![Documentation][docs.rs-shield]][docs.rs]
+[![Dependency Status][deps.rs-shield]][deps.rs]
 
 Procedural macros for the official Rust binding for
 [Eclipse Cyclone DDS][cyclonedds-github].
@@ -131,23 +131,21 @@ For now, the MSRV is the latest stable Rust version at the time of release.
 - [Security Policy](../SECURITY.md)
 
 [check-workflow]: https://github.com/eclipse-cyclonedds/cyclonedds-rust/actions/workflows/check.yml
-[check-workflow-status-shield]: https://img.shields.io/github/actions/workflow/status/eclipse-cyclonedds/cyclonedds-rust/check.yml
+[check-workflow-status-shield]: https://shieldcn.dev/github/ci/eclipse-cyclonedds/cyclonedds-rust?no-track&mode=light&size=xs
 [community]: https://discord.gg/4QQvWZrFKF
-[community-shield]: https://img.shields.io/discord/960814229844291604.svg?logo=discord
+[community-shield]: https://shieldcn.dev/discord/960814229844291604.svg?no-track&variant=branded&size=xs
 [crates.io]: https://crates.io/crates/eclipse-cyclonedds-macros
-[crates.io-shield]: https://img.shields.io/crates/v/eclipse-cyclonedds-macros.svg
+[crates.io-shield]: https://shieldcn.dev/group/crates/eclipse-cyclonedds-macros+crates/license/eclipse-cyclonedds-macros.svg?no-track&mode=light&size=xs
 [cyclonedds-docs]: https://cyclonedds.io/docs
 [cyclonedds-github]: https://github.com/eclipse-cyclonedds/cyclonedds
 [cyclonedds-homepage]: https://cyclonedds.io
-[cyclonedds-homepage-shield]: https://img.shields.io/badge/web-cyclonedds.io-blue
+[cyclonedds-homepage-shield]: https://shieldcn.dev/badge/web-cyclonedds.io-blue.svg?no-track&mode=light&logo=lu%3ATornado&size=xs
 [dds-spec]: https://www.omg.org/spec/DDS/1.4/About-DDS/
 [ddsi-rtps-spec]: https://www.omg.org/spec/DDSI-RTPS/
+[deps.rs]: https://deps.rs/repo/github/eclipse-cyclonedds/cyclonedds-rust
+[deps.rs-shield]: https://deps.rs/repo/github/eclipse-cyclonedds/cyclonedds-rust/status.svg
 [docs.rs]: https://docs.rs/eclipse-cyclonedds-macros
 [docs.rs-shield]: https://docs.rs/eclipse-cyclonedds-macros/badge.svg
 [eclipse-cyclonedds]: https://crates.io/crates/eclipse-cyclonedds
 [eclipse-cyclonedds-docs]: https://docs.rs/eclipse-cyclonedds
-[edl-license]: https://choosealicense.com/licenses/edl-1.0/
-[edl-license-shield]: https://img.shields.io/badge/license-EDL%201.0-blue
-[epl-license]: https://choosealicense.com/licenses/epl-2.0/
-[epl-license-shield]: https://img.shields.io/badge/license-EPL%202.0-blue
 [omg-dds-wiki]: https://www.omgwiki.org/ddsf/doku.php?id=ddsf:public:guidebook:01_front:4_toc
