@@ -38,9 +38,6 @@ fn read_write_generate_keyhash() -> dds::Result<()> {
              </GenerateKeyhash>
            </Internal>
            <Tracing>
-             <Verbosity>
-               finest
-             </Verbosity>
              <OutputFile>
                stderr
              </OutputFile>
@@ -57,16 +54,21 @@ fn read_write_generate_keyhash() -> dds::Result<()> {
     let topic = dds::Topic::<common::topic::Data>::new(&participant, &topic_name)?;
     let reader = dds::Reader::new(&topic)?;
 
+    reader.set_status_mask(dds::Status::DataAvailable)?;
+    let mut reader_waitset = dds::WaitSet::<()>::new(&participant)?;
+    reader_waitset.attach(&reader, None)?;
+
     let domain = dds::Domain::new_with_xml_config(domain_id_02, config)?;
     let participant = dds::Participant::builder(&domain).with_qos(&qos).build()?;
     let topic = dds::Topic::<common::topic::Data>::new(&participant, &topic_name)?;
     let writer = dds::Writer::new(&topic)?;
 
     writer.set_status_mask(dds::Status::PublicationMatched)?;
-    let mut waitset = dds::WaitSet::<()>::new(&participant)?;
-    waitset.attach(&writer, None)?;
-    waitset.wait(std::time::Duration::from_secs(1).try_into()?)?;
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    let mut writer_waitset = dds::WaitSet::<()>::new(&participant)?;
+    writer_waitset.attach(&writer, None)?;
+
+    writer_waitset.wait(std::time::Duration::from_secs(1).try_into()?)?;
+    std::thread::sleep(std::time::Duration::from_millis(1));
 
     let sample = common::topic::Data {
         x: 12,
@@ -75,9 +77,7 @@ fn read_write_generate_keyhash() -> dds::Result<()> {
     };
     writer.write(&sample)?;
 
-    while reader.peek()?.is_empty() {
-        std::thread::sleep(std::time::Duration::from_millis(1));
-    }
+    reader_waitset.wait(std::time::Duration::from_secs(1).try_into()?)?;
 
     let samples = reader.read()?;
     assert_eq!(samples.len(), 1);
