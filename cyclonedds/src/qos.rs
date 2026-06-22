@@ -27,10 +27,8 @@ use crate::internal::traits::AsFfi;
 /// Constructed via [`QoS::new`] and configured through chainable `with_*`
 /// methods. Unset policies inherit the defaults for the entity type they are
 /// applied to.
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct QoS {
-    pub(crate) inner: cyclonedds_sys::dds_qos_t,
-
     user_data: Option<policy::UserData>,
     topic_data: Option<policy::TopicData>,
     group_data: Option<policy::GroupData>,
@@ -55,36 +53,214 @@ pub struct QoS {
     entity_name: Option<policy::EntityName>,
 }
 
-impl std::default::Default for QoS {
-    fn default() -> Self {
-        Self {
-            inner: cyclonedds_sys::dds_qos_t {
-                present: 0,
-                aliased: 0,
-                ..Default::default()
-            },
-            user_data: Option::default(),
-            topic_data: Option::default(),
-            group_data: Option::default(),
-            durability: Option::default(),
-            durability_service: Option::default(),
-            presentation: Option::default(),
-            deadline: Option::default(),
-            latency_budget: Option::default(),
-            ownership: Option::default(),
-            liveliness: Option::default(),
-            time_based_filter: Option::default(),
-            partition: Option::default(),
-            reliability: Option::default(),
-            transport_priority: Option::default(),
-            lifespan: Option::default(),
-            destination_order: Option::default(),
-            history: Option::default(),
-            resource_limits: Option::default(),
-            entity_factory: Option::default(),
-            writer_data_lifecycle: Option::default(),
-            reader_data_lifecycle: Option::default(),
-            entity_name: Option::default(),
+impl AsFfi for QoS {
+    type Target<'a>
+        = cyclonedds_sys::dds_qos_t
+    where
+        Self: 'a;
+
+    fn as_ffi(&self) -> Self::Target<'_> {
+        let mut target = cyclonedds_sys::dds_qos_t {
+            present: 0,
+            aliased: 0,
+            ..Default::default()
+        };
+
+        self.apply_user_data_qos(&mut target);
+        self.apply_topic_data_qos(&mut target);
+        self.apply_group_data_qos(&mut target);
+        self.apply_durability_qos(&mut target);
+        self.apply_durability_service_qos(&mut target);
+        self.apply_presentation_qos(&mut target);
+        self.apply_deadline_qos(&mut target);
+        self.apply_latency_budget_qos(&mut target);
+        self.apply_ownership_qos(&mut target);
+        self.apply_liveliness_qos(&mut target);
+        self.apply_time_based_filter_qos(&mut target);
+        self.apply_partition_qos(&mut target);
+        self.apply_reliability_qos(&mut target);
+        self.apply_transport_priority_qos(&mut target);
+        self.apply_lifespan_qos(&mut target);
+        self.apply_destination_order_qos(&mut target);
+        self.apply_history_qos(&mut target);
+        self.apply_resource_limits_qos(&mut target);
+        self.apply_entity_factory_qos(&mut target);
+        self.apply_writer_data_lifecycle_qos(&mut target);
+        self.apply_reader_data_lifecycle_qos(&mut target);
+        self.apply_entity_name_qos(&mut target);
+
+        target
+    }
+}
+
+impl QoS {
+    fn apply_user_data_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(user_data) = &self.user_data {
+            ffi::dds_qos_set_user_data(target, user_data.as_ffi());
+        }
+    }
+
+    fn apply_topic_data_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(topic_data) = &self.topic_data {
+            ffi::dds_qos_set_topic_data(target, topic_data.as_ffi());
+        }
+    }
+
+    fn apply_group_data_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(group_data) = &self.group_data {
+            ffi::dds_qos_set_group_data(target, group_data.as_ffi());
+        }
+    }
+
+    fn apply_durability_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(durability) = &self.durability {
+            ffi::dds_qos_set_durability(target, durability.as_ffi());
+        }
+    }
+
+    fn apply_durability_service_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(durability_service) = &self.durability_service {
+            let (
+                service_cleanup_delay,
+                history_kind,
+                history_depth,
+                max_samples,
+                max_instances,
+                max_samples_per_instance,
+            ) = durability_service.as_ffi();
+            ffi::dds_qos_set_durability_service(
+                target,
+                service_cleanup_delay,
+                history_kind,
+                history_depth,
+                max_samples,
+                max_instances,
+                max_samples_per_instance,
+            );
+        }
+    }
+
+    fn apply_presentation_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(presentation) = &self.presentation {
+            let (access_scope, coherent_access, ordered_access) = presentation.as_ffi();
+            ffi::dds_qos_set_presentation(target, access_scope, coherent_access, ordered_access);
+        }
+    }
+
+    fn apply_deadline_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(deadline) = &self.deadline {
+            ffi::dds_qos_set_deadline(target, deadline.as_ffi());
+        }
+    }
+
+    fn apply_latency_budget_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(latency_budget) = &self.latency_budget {
+            ffi::dds_qos_set_latency_budget(target, latency_budget.as_ffi());
+        }
+    }
+
+    fn apply_ownership_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(ownership) = &self.ownership {
+            let (kind, strength) = ownership.as_ffi();
+            ffi::dds_qos_set_ownership(target, kind);
+            if let Some(strength) = strength {
+                ffi::dds_qos_set_ownership_strength(target, strength);
+            }
+        }
+    }
+
+    fn apply_liveliness_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(liveliness) = &self.liveliness {
+            let (kind, lease_duration) = liveliness.as_ffi();
+            ffi::dds_qos_set_liveliness(target, kind, lease_duration);
+        }
+    }
+
+    fn apply_time_based_filter_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(time_based_filter) = &self.time_based_filter {
+            ffi::dds_qos_set_time_based_filter(target, time_based_filter.as_ffi());
+        }
+    }
+
+    fn apply_partition_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(partition) = &self.partition {
+            let partitions = partition.as_ffi();
+            ffi::dds_qos_set_partition(target, &partitions);
+        }
+    }
+
+    fn apply_reliability_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(reliability) = &self.reliability {
+            let (kind, max_blocking_time) = reliability.as_ffi();
+            ffi::dds_qos_set_reliability(target, kind, max_blocking_time);
+        }
+    }
+
+    fn apply_transport_priority_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(transport_priority) = &self.transport_priority {
+            ffi::dds_qos_set_transport_priority(target, transport_priority.as_ffi());
+        }
+    }
+
+    fn apply_lifespan_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(lifespan) = &self.lifespan {
+            ffi::dds_qos_set_lifespan(target, lifespan.as_ffi());
+        }
+    }
+
+    fn apply_destination_order_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(destination_order) = &self.destination_order {
+            ffi::dds_qos_set_destination_order(target, destination_order.as_ffi());
+        }
+    }
+
+    fn apply_history_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(history) = &self.history {
+            let (kind, depth) = history.as_ffi();
+            ffi::dds_qos_set_history(target, kind, depth);
+        }
+    }
+
+    fn apply_resource_limits_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(resource_limits) = &self.resource_limits {
+            let (max_samples, max_instances, max_samples_per_instance) = resource_limits.as_ffi();
+            ffi::dds_qos_set_resource_limits(
+                target,
+                max_samples,
+                max_instances,
+                max_samples_per_instance,
+            );
+        }
+    }
+
+    fn apply_entity_factory_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(entity_factory) = &self.entity_factory {
+            ffi::dds_qos_set_entity_factory(target, entity_factory.as_ffi());
+        }
+    }
+
+    fn apply_writer_data_lifecycle_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(writer_data_lifecycle) = &self.writer_data_lifecycle {
+            ffi::dds_qos_set_writer_data_lifecycle(target, writer_data_lifecycle.as_ffi());
+        }
+    }
+
+    fn apply_reader_data_lifecycle_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(reader_data_lifecycle) = &self.reader_data_lifecycle {
+            let (autopurge_nowriter_samples_delay, autopurge_disposed_samples_delay) =
+                reader_data_lifecycle.as_ffi();
+            ffi::dds_qos_set_reader_data_lifecycle(
+                target,
+                autopurge_nowriter_samples_delay,
+                autopurge_disposed_samples_delay,
+            );
+        }
+    }
+
+    fn apply_entity_name_qos(&self, target: &mut cyclonedds_sys::dds_qos_t) {
+        if let Some(entity_name) = &self.entity_name {
+            let name = entity_name.as_ffi();
+            ffi::dds_qos_set_entity_name(target, &name);
         }
     }
 }
@@ -118,7 +294,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_user_data(mut self, user_data: policy::UserData) -> Self {
-        ffi::dds_qos_set_user_data(&mut self.inner, user_data.as_ffi());
         self.user_data = Some(user_data);
         self
     }
@@ -137,7 +312,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_topic_data(mut self, topic_data: policy::TopicData) -> Self {
-        ffi::dds_qos_set_topic_data(&mut self.inner, topic_data.as_ffi());
         self.topic_data = Some(topic_data);
         self
     }
@@ -156,7 +330,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_group_data(mut self, group_data: policy::GroupData) -> Self {
-        ffi::dds_qos_set_group_data(&mut self.inner, group_data.as_ffi());
         self.group_data = Some(group_data);
         self
     }
@@ -173,7 +346,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_durability(mut self, durability: policy::Durability) -> Self {
-        ffi::dds_qos_set_durability(&mut self.inner, durability.as_ffi());
         self.durability = Some(durability);
         self
     }
@@ -201,24 +373,6 @@ impl QoS {
         mut self,
         durability_service: policy::DurabilityService,
     ) -> Self {
-        let (
-            service_cleanup_delay,
-            history_kind,
-            history_depth,
-            max_samples,
-            max_instances,
-            max_samples_per_instance,
-        ) = durability_service.as_ffi();
-
-        ffi::dds_qos_set_durability_service(
-            &mut self.inner,
-            service_cleanup_delay,
-            history_kind,
-            history_depth,
-            max_samples,
-            max_instances,
-            max_samples_per_instance,
-        );
         self.durability_service = Some(durability_service);
         self
     }
@@ -238,13 +392,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_presentation(mut self, presentation: policy::Presentation) -> Self {
-        let (access_scope, coherent_access, ordered_access) = presentation.as_ffi();
-        ffi::dds_qos_set_presentation(
-            &mut self.inner,
-            access_scope,
-            coherent_access,
-            ordered_access,
-        );
         self.presentation = Some(presentation);
         self
     }
@@ -263,8 +410,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_deadline(mut self, deadline: policy::Deadline) -> Self {
-        let period = deadline.as_ffi();
-        ffi::dds_qos_set_deadline(&mut self.inner, period);
         self.deadline = Some(deadline);
         self
     }
@@ -283,8 +428,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_latency_budget(mut self, latency_budget: policy::LatencyBudget) -> Self {
-        let duration = latency_budget.as_ffi();
-        ffi::dds_qos_set_latency_budget(&mut self.inner, duration);
         self.latency_budget = Some(latency_budget);
         self
     }
@@ -301,12 +444,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_ownership(mut self, ownership: policy::Ownership) -> Self {
-        let (kind, strength) = ownership.as_ffi();
-        ffi::dds_qos_set_ownership(&mut self.inner, kind);
-        if let Some(strength) = strength {
-            ffi::dds_qos_set_ownership_strength(&mut self.inner, strength);
-        }
-
         self.ownership = Some(ownership);
         self
     }
@@ -325,8 +462,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_liveliness(mut self, liveliness: policy::Liveliness) -> Self {
-        let (kind, lease_duration) = liveliness.as_ffi();
-        ffi::dds_qos_set_liveliness(&mut self.inner, kind, lease_duration);
         self.liveliness = Some(liveliness);
         self
     }
@@ -345,8 +480,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_time_based_filter(mut self, time_based_filter: policy::TimeBasedFilter) -> Self {
-        let minimum_separation = time_based_filter.as_ffi();
-        ffi::dds_qos_set_time_based_filter(&mut self.inner, minimum_separation);
         self.time_based_filter = Some(time_based_filter);
         self
     }
@@ -365,8 +498,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_partition(mut self, partition: policy::Partition) -> Self {
-        let partitions = partition.as_ffi();
-        ffi::dds_qos_set_partition(&mut self.inner, &partitions);
         self.partition = Some(partition);
         self
     }
@@ -385,8 +516,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_reliability(mut self, reliability: policy::Reliability) -> Self {
-        let (kind, max_blocking_time) = reliability.as_ffi();
-        ffi::dds_qos_set_reliability(&mut self.inner, kind, max_blocking_time);
         self.reliability = Some(reliability);
         self
     }
@@ -406,8 +535,6 @@ impl QoS {
         mut self,
         transport_priority: policy::TransportPriority,
     ) -> Self {
-        let lifespan = transport_priority.as_ffi();
-        ffi::dds_qos_set_transport_priority(&mut self.inner, lifespan);
         self.transport_priority = Some(transport_priority);
         self
     }
@@ -426,8 +553,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_lifespan(mut self, lifespan: policy::Lifespan) -> Self {
-        let duration = lifespan.as_ffi();
-        ffi::dds_qos_set_lifespan(&mut self.inner, duration);
         self.lifespan = Some(lifespan);
         self
     }
@@ -444,8 +569,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_destination_order(mut self, destination_order: policy::DestinationOrder) -> Self {
-        let kind = destination_order.as_ffi();
-        ffi::dds_qos_set_destination_order(&mut self.inner, kind);
         self.destination_order = Some(destination_order);
         self
     }
@@ -462,8 +585,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_history(mut self, history: policy::History) -> Self {
-        let (kind, depth) = history.as_ffi();
-        ffi::dds_qos_set_history(&mut self.inner, kind, depth);
         self.history = Some(history);
         self
     }
@@ -484,13 +605,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_resource_limits(mut self, resource_limits: policy::ResourceLimits) -> Self {
-        let (max_samples, max_instances, max_samples_per_instance) = resource_limits.as_ffi();
-        ffi::dds_qos_set_resource_limits(
-            &mut self.inner,
-            max_samples,
-            max_instances,
-            max_samples_per_instance,
-        );
         self.resource_limits = Some(resource_limits);
         self
     }
@@ -509,8 +623,6 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_entity_factory(mut self, entity_factory: policy::EntityFactory) -> Self {
-        let auto_enable_created_entities = entity_factory.as_ffi();
-        ffi::dds_qos_set_entity_factory(&mut self.inner, auto_enable_created_entities);
         self.entity_factory = Some(entity_factory);
         self
     }
@@ -532,8 +644,6 @@ impl QoS {
         mut self,
         writer_data_lifecycle: policy::WriterDataLifecycle,
     ) -> Self {
-        let autodispose = writer_data_lifecycle.as_ffi();
-        ffi::dds_qos_set_writer_data_lifecycle(&mut self.inner, autodispose);
         self.writer_data_lifecycle = Some(writer_data_lifecycle);
         self
     }
@@ -556,13 +666,6 @@ impl QoS {
         mut self,
         reader_data_lifecycle: policy::ReaderDataLifecycle,
     ) -> Self {
-        let (autopurge_nowriter_samples_delay, autopurge_disposed_samples_delay) =
-            reader_data_lifecycle.as_ffi();
-        ffi::dds_qos_set_reader_data_lifecycle(
-            &mut self.inner,
-            autopurge_nowriter_samples_delay,
-            autopurge_disposed_samples_delay,
-        );
         self.reader_data_lifecycle = Some(reader_data_lifecycle);
         self
     }
@@ -581,16 +684,8 @@ impl QoS {
     /// ```
     #[must_use]
     pub fn with_entity_name(mut self, entity_name: policy::EntityName) -> Self {
-        let name = entity_name.as_ffi();
-        ffi::dds_qos_set_entity_name(&mut self.inner, &name);
         self.entity_name = Some(entity_name);
         self
-    }
-}
-
-impl Drop for QoS {
-    fn drop(&mut self) {
-        ffi::dds_reset_qos(&mut self.inner);
     }
 }
 
@@ -864,11 +959,12 @@ mod tests {
 
     #[test]
     #[should_panic = "unable to safely create std::ffi::CString from partition name"]
-    fn test_qos_set_partition_with_invalid_name() {
+    fn test_qos_materialize_partition_with_invalid_name() {
         let partition = policy::Partition {
             partitions: vec!["A".to_string(), "\0".to_string()],
         };
-        let _ = QoS::new().with_partition(partition.clone());
+        let qos = QoS::new().with_partition(partition.clone());
+        let _ = qos.as_ffi();
     }
 
     #[test]
@@ -972,10 +1068,11 @@ mod tests {
 
     #[test]
     #[should_panic = "unable to safely create std::ffi::CString from entity name"]
-    fn test_qos_set_entity_name_with_invalid_name() {
+    fn test_qos_materialize_entity_name_with_invalid_name() {
         let entity_name = policy::EntityName {
             name: "\0".to_string(),
         };
-        let _ = QoS::new().with_entity_name(entity_name);
+        let qos = QoS::new().with_entity_name(entity_name);
+        let _ = qos.as_ffi();
     }
 }

@@ -166,6 +166,8 @@ where
         let mut sertype =
             std::mem::ManuallyDrop::new(Box::new(Sertype::<T>::new(&type_name, T::IS_KEYED)));
 
+        let qos = self.qos.map(AsFfi::as_ffi);
+
         self.listener
             .map(|listener| listener.as_ffi())
             .transpose()
@@ -174,7 +176,7 @@ where
                     self.participant.inner,
                     &name,
                     &mut &mut sertype.inner,
-                    self.qos.map(|qos| &qos.inner),
+                    qos.as_ref(),
                     listener.as_ref(),
                 )
                 .inspect_err(|_| {
