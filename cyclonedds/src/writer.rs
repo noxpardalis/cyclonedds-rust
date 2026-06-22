@@ -194,6 +194,7 @@ where
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
     pub fn build(self) -> Result<Writer<'d, 'p, 't, T>> {
+        let qos = self.qos.map(AsFfi::as_ffi);
         // NOTE: using `and_then` to avoid ? branch on the listener for coverage
         // since the C lib currently panics on OOM rather than returning null.
         self.listener
@@ -207,7 +208,7 @@ where
                                 publisher.inner
                             }),
                         self.topic.inner,
-                        self.qos.map(|qos| &qos.inner),
+                        qos.as_ref(),
                         listener.as_ref(),
                     )?,
                     phantom_topic: std::marker::PhantomData,

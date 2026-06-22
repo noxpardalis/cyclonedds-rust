@@ -171,12 +171,6 @@ pub fn dds_create_domain_with_config(
     Ok(unsafe { cyclonedds_sys::dds_create_domain(domain_id, config.as_ptr()) }.into_error()? as _)
 }
 
-pub fn dds_reset_qos(qos: &mut cyclonedds_sys::dds_qos_t) {
-    unsafe {
-        cyclonedds_sys::dds_reset_qos(qos);
-    }
-}
-
 pub fn dds_qos_set_user_data(qos: &mut cyclonedds_sys::dds_qos_t, user_data: &[u8]) {
     unsafe {
         cyclonedds_sys::dds_qset_userdata(qos, user_data.as_ptr().cast(), user_data.len());

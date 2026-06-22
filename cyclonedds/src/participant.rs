@@ -111,6 +111,7 @@ impl<'d, 'q> ParticipantBuilder<'d, 'q> {
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
     pub fn build(self) -> Result<Participant<'d>> {
+        let qos = self.qos.map(AsFfi::as_ffi);
         // NOTE: using `and_then` to avoid ? branch on the listener for coverage
         // since the C lib currently panics on OOM rather than returning null.
         self.listener
@@ -120,7 +121,7 @@ impl<'d, 'q> ParticipantBuilder<'d, 'q> {
                 Ok(Participant {
                     inner: ffi::dds_create_participant(
                         self.domain.id,
-                        self.qos.map(|qos| &qos.inner),
+                        qos.as_ref(),
                         listener.as_ref(),
                     )?,
                     phantom: std::marker::PhantomData,

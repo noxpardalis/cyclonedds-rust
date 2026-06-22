@@ -118,6 +118,8 @@ impl<'d, 'p, 'q> PublisherBuilder<'d, 'p, 'q> {
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
     pub fn build(self) -> Result<Publisher<'d, 'p>> {
+        let qos = self.qos.map(AsFfi::as_ffi);
+
         // NOTE: using `and_then` to avoid ? branch on the listener for coverage
         // since the C lib currently panics on OOM rather than returning null.
         self.listener
@@ -127,7 +129,7 @@ impl<'d, 'p, 'q> PublisherBuilder<'d, 'p, 'q> {
                 Ok(Publisher {
                     inner: ffi::dds_create_publisher(
                         self.participant.inner,
-                        self.qos.map(|qos| &qos.inner),
+                        qos.as_ref(),
                         listener.as_ref(),
                     )?,
                     phantom: std::marker::PhantomData,
