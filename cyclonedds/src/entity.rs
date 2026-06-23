@@ -25,7 +25,7 @@ pub struct EntityHandle {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
 }
 
-mod private {
+mod sealed {
     /// Private trait for sealing downstream implementation of the
     /// [`Entity`](super::Entity) trait.
     pub trait Sealed {}
@@ -49,7 +49,7 @@ mod private {
 ///         [`instance`](crate::state::instance) state.
 ///       - [`QueryCondition<T, F>`](crate::QueryCondition): filters [`Reader`](crate::Reader)
 ///         samples by [`sample state`](crate::State) and a predicate.
-pub trait Entity: private::Sealed {
+pub trait Entity: sealed::Sealed {
     /// Returns the [`EntityHandle`] of this entity.
     ///
     /// # Examples
@@ -344,7 +344,7 @@ pub trait Entity: private::Sealed {
 
 macro_rules! impl_entity {
     ($ty:ty) => {
-        impl private::Sealed for $ty {}
+        impl sealed::Sealed for $ty {}
 
         impl Entity for $ty {
             fn handle(&self) -> EntityHandle {
@@ -353,7 +353,7 @@ macro_rules! impl_entity {
         }
     };
     ($ty:ty where $($bounds:tt)*) => {
-        impl<$($bounds)*> private::Sealed for $ty {}
+        impl<$($bounds)*> sealed::Sealed for $ty {}
 
         impl<$($bounds)*> Entity for $ty {
             fn handle(&self) -> EntityHandle {
