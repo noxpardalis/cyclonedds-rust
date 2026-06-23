@@ -1090,5 +1090,11 @@ pub fn dds_waitset_wait_until<'a, A>(
     }
 }
 
+pub fn dds_get_guid(entity: cyclonedds_sys::dds_entity_t) -> Result<cyclonedds_sys::dds_guid_t> {
+    let mut guid = cyclonedds_sys::dds_guid_t::default();
+    unsafe { cyclonedds_sys::dds_get_guid(entity, &raw mut guid) }.into_error()?;
+    Ok(guid)
+}
+
 #[cfg(test)]
 mod tests;

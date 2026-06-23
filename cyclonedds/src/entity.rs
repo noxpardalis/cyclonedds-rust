@@ -25,6 +25,89 @@ pub struct EntityHandle {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
 }
 
+/// The prefix portion of a [`Guid`].
+///
+/// All entities belonging to the same [`participant`](crate::Participant) have the
+/// same prefix.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
+pub struct GuidPrefix(pub(crate) [u8; 12]);
+
+impl GuidPrefix {
+    /// The unknown GUID prefix.
+    pub const UNKNOWN: Self = Self([0x00; 12]);
+
+    /// Returns the raw GUID prefix bytes.
+    #[must_use]
+    pub const fn as_bytes(self) -> [u8; 12] {
+        self.0
+    }
+}
+/// The entity-id portion of a [`Guid`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
+pub struct EntityId(u32);
+
+impl EntityId {
+    /// An unknown GUID entity id.
+    pub const UNKNOWN: Self = Self(0x0000_0000);
+
+    /// Creates an entity id from bytes in network byte order.
+    #[must_use]
+    pub const fn from_bytes(bytes: [u8; 4]) -> Self {
+        Self(u32::from_be_bytes(bytes))
+    }
+
+    /// Returns the entity id as bytes in network byte order.
+    #[must_use]
+    pub const fn as_bytes(self) -> [u8; 4] {
+        self.0.to_be_bytes()
+    }
+
+    /// Returns the host-order integer value of the entity id.
+    #[must_use]
+    pub const fn as_u32(self) -> u32 {
+        self.0
+    }
+}
+
+/// A globally unique entity identifier.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Ord, PartialOrd, Hash)]
+pub struct Guid {
+    prefix: GuidPrefix,
+    entity_id: EntityId,
+}
+
+impl Guid {
+    /// The unknown GUID.
+    pub const UNKNOWN: Self = Self {
+        prefix: GuidPrefix::UNKNOWN,
+        entity_id: EntityId::UNKNOWN,
+    };
+
+    pub(crate) fn from_bytes(guid: [u8; 16]) -> Self {
+        let (prefix_bytes, entity_id_bytes) = guid.split_at(12);
+        let prefix = GuidPrefix(prefix_bytes.try_into().expect(
+            "a byte array containing 16 bytes split at index 12 is exactly 12 element long",
+        ));
+        let entity_id = EntityId::from_bytes(entity_id_bytes.try_into().expect(
+            "a byte array containing 16 bytes split at index 12 leaves exactly 4 bytes remaining",
+        ));
+
+        Self { prefix, entity_id }
+    }
+
+    /// Returns the GUID prefix.
+    #[must_use]
+    pub const fn prefix(self) -> GuidPrefix {
+        self.prefix
+    }
+
+    /// Returns the GUID entity id.
+    #[must_use]
+    pub const fn entity_id(self) -> EntityId {
+        self.entity_id
+    }
+}
+
 mod sealed {
     /// Private trait for sealing downstream implementation of the
     /// [`Entity`](super::Entity) trait.
@@ -379,7 +462,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_entity_id_all_entity_types() {
+    fn test_guid_value_conversions() {
+        let bytes = [
+            0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x10, 0x32, 0x54, 0x76, 0x98, 0xba,
+            0xdc, 0xfe,
+        ];
+
+        let entity_id = EntityId::from_bytes([0x98, 0xba, 0xdc, 0xfe]);
+        assert_eq!(entity_id.as_u32(), 0x98ba_dcfe);
+        assert_eq!(entity_id.as_bytes(), [0x98, 0xba, 0xdc, 0xfe]);
+
+        let guid = Guid::from_bytes(bytes);
+        assert_eq!(
+            guid.prefix().as_bytes(),
+            [
+                0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x10, 0x32, 0x54, 0x76
+            ]
+        );
+        assert_eq!(guid.entity_id(), entity_id);
+        assert_eq!(GuidPrefix::UNKNOWN.as_bytes(), [0x00; 12]);
+        assert_eq!(EntityId::UNKNOWN.as_bytes(), [0x00; 4]);
+        assert_eq!(Guid::UNKNOWN.prefix(), GuidPrefix::UNKNOWN);
+        assert_eq!(Guid::UNKNOWN.entity_id(), EntityId::UNKNOWN);
+    }
+
+    #[test]
+    fn test_entity_handle_all_entity_types() {
         let domain_id = crate::tests::domain::unique_id();
         let domain = crate::Domain::new(domain_id).unwrap();
         let participant = crate::Participant::new(&domain).unwrap();
