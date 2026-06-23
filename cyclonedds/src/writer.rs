@@ -1,3 +1,4 @@
+use crate::entity::Guid;
 use crate::internal::ffi;
 use crate::internal::traits::AsFfi;
 use crate::{Publisher, Result, Topic};
@@ -1019,6 +1020,47 @@ where
     {
         self.set_listener(listener).map(|()| self)
     }
+
+    /// Returns the [`Guid`] associated with this writer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use cyclonedds::entity::Entity;
+    /// use cyclonedds::{Topic, Writer};
+    ///
+    /// # #[derive(
+    /// #     cyclonedds::Topicable, serde::Serialize, serde::Deserialize, Clone, Debug, Default,
+    /// # )]
+    /// # struct Data {
+    /// #     x: i32,
+    /// # }
+    /// # let domain = cyclonedds::Domain::default();
+    /// # let participant = cyclonedds::Participant::new(&domain)?;
+    /// let topic = Topic::<Data>::new(&participant, "Example")?;
+    /// let writer = Writer::new(&topic)?;
+    ///
+    /// // The writer and the topic have distinct GUIDs.
+    /// assert_ne!(writer.guid(), topic.guid());
+    ///
+    /// // The writer and the topic share the same participant so their GUID
+    /// // prefixes are the same.
+    /// assert_eq!(writer.guid().prefix(), topic.guid().prefix());
+    ///
+    /// # Ok::<_, cyclonedds::Error>(())
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if retrieving the GUID for this writer fails, which should not be
+    /// possible for a valid writer.
+    #[must_use]
+    pub fn guid(&self) -> Guid {
+        // NOTE: this cannot fail with a valid writer.
+        let guid = ffi::dds_get_guid(self.inner)
+            .unwrap_or_else(|err| panic!("unable to retrieve GUID from: {self:?}: {err}"));
+        Guid::from_bytes(guid.v)
+    }
 }
 
 impl<T> Drop for Writer<'_, '_, '_, T>
@@ -2012,5 +2054,42 @@ mod tests {
         let result = writer.unset_listener().unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
         writer.inner = writer_id;
+    }
+
+    #[test]
+    fn test_writer_guid() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+
+        let writer = Writer::new(&topic).unwrap();
+        let guid = writer.guid();
+
+        assert_ne!(guid, Guid::UNKNOWN);
+        assert_eq!(guid.entity_id().as_u32(), 0x102); // writer on keyed topic.
+        assert_eq!(guid.prefix(), participant.guid().prefix());
+    }
+
+    #[test]
+    fn test_writer_guid_panics_on_invalid_entity() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+        let mut writer = Writer::new(&topic).unwrap();
+        let writer_id = writer.inner;
+        writer.inner = 0;
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = writer.guid();
+        }));
+
+        writer.inner = writer_id;
+        assert!(result.is_err());
     }
 }

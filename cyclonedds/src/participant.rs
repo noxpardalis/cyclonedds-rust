@@ -1,4 +1,5 @@
 use crate::Result;
+use crate::entity::Guid;
 use crate::internal::ffi;
 use crate::internal::traits::AsFfi;
 
@@ -245,6 +246,40 @@ impl<'d> Participant<'d> {
     {
         self.set_listener(listener).map(|()| self)
     }
+
+    /// Returns the [`Guid`] associated with this participant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use cyclonedds::entity::Entity;
+    /// use cyclonedds::{Topic};
+    ///
+    /// # #[derive(
+    /// #     cyclonedds::Topicable, serde::Serialize, serde::Deserialize, Clone, Debug, Default,
+    /// # )]
+    /// # struct Data {
+    /// #     x: i32,
+    /// # }
+    /// # let domain = cyclonedds::Domain::default();
+    /// let participant = cyclonedds::Participant::new(&domain)?;
+    ///
+    /// let guid = participant.guid();
+    ///
+    /// # Ok::<_, cyclonedds::Error>(())
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if retrieving the GUID for this participant fails, which should
+    /// not be possible for a valid participant.
+    #[must_use]
+    pub fn guid(&self) -> Guid {
+        // NOTE: this cannot fail with a valid participant.
+        let guid = ffi::dds_get_guid(self.inner)
+            .unwrap_or_else(|err| panic!("unable to retrieve GUID from: {self:?}: {err}"));
+        Guid::from_bytes(guid.v)
+    }
 }
 
 impl Drop for Participant<'_> {
@@ -335,5 +370,34 @@ mod tests {
         let result = participant.unset_listener().unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
         participant.inner = participant_id;
+    }
+
+    #[test]
+    fn test_participant_guid() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+
+        let participant = Participant::new(&domain).unwrap();
+        let guid = participant.guid();
+
+        assert_ne!(guid, Guid::UNKNOWN);
+        assert_eq!(guid.entity_id().as_u32(), 0x1c1);
+    }
+
+    #[test]
+    fn test_participant_guid_panics_on_invalid_entity() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+
+        let mut participant = Participant::new(&domain).unwrap();
+        let participant_id = participant.inner;
+        participant.inner = 0;
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = participant.guid();
+        }));
+
+        participant.inner = participant_id;
+        assert!(result.is_err());
     }
 }

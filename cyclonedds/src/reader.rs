@@ -1,3 +1,4 @@
+use crate::entity::Guid;
 use crate::internal::ffi;
 use crate::internal::traits::AsFfi;
 use crate::{Result, Subscriber, Topic};
@@ -593,6 +594,47 @@ where
     {
         self.set_listener(listener).map(|()| self)
     }
+
+    /// Returns the [`Guid`] associated with this reader.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use cyclonedds::entity::Entity;
+    /// use cyclonedds::{Topic, Reader};
+    ///
+    /// # #[derive(
+    /// #     cyclonedds::Topicable, serde::Serialize, serde::Deserialize, Clone, Debug, Default,
+    /// # )]
+    /// # struct Data {
+    /// #     x: i32,
+    /// # }
+    /// # let domain = cyclonedds::Domain::default();
+    /// # let participant = cyclonedds::Participant::new(&domain)?;
+    /// let topic = Topic::<Data>::new(&participant, "Example")?;
+    /// let reader = Reader::new(&topic)?;
+    ///
+    /// // The reader and the topic have distinct GUIDs.
+    /// assert_ne!(reader.guid(), topic.guid());
+    ///
+    /// // The reader and the topic share the same participant so their GUID
+    /// // prefixes are the same.
+    /// assert_eq!(reader.guid().prefix(), topic.guid().prefix());
+    ///
+    /// # Ok::<_, cyclonedds::Error>(())
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if retrieving the GUID for this reader fails, which should not be
+    /// possible for a valid reader.
+    #[must_use]
+    pub fn guid(&self) -> Guid {
+        // NOTE: this cannot fail with a valid reader.
+        let guid = ffi::dds_get_guid(self.inner)
+            .unwrap_or_else(|err| panic!("unable to retrieve GUID from: {self:?}: {err}"));
+        Guid::from_bytes(guid.v)
+    }
 }
 
 impl<T> Drop for Reader<'_, '_, '_, T>
@@ -823,5 +865,42 @@ mod tests {
         let result = reader.unset_listener().unwrap_err();
         assert_eq!(result, crate::Error::BadParameter);
         reader.inner = reader_id;
+    }
+
+    #[test]
+    fn test_reader_guid() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+
+        let reader = Reader::new(&topic).unwrap();
+        let guid = reader.guid();
+
+        assert_ne!(guid, Guid::UNKNOWN);
+        assert_eq!(guid.entity_id().as_u32(), 0x107); // reader on keyed topic.
+        assert_eq!(guid.prefix(), participant.guid().prefix());
+    }
+
+    #[test]
+    fn test_reader_guid_panics_on_invalid_entity() {
+        let domain_id = crate::tests::domain::unique_id();
+        let domain = crate::Domain::new(domain_id).unwrap();
+        let topic_name = crate::tests::topic::unique_name();
+        let participant = crate::Participant::new(&domain).unwrap();
+        let topic =
+            crate::Topic::<crate::tests::topic::Data>::new(&participant, &topic_name).unwrap();
+        let mut reader = Reader::new(&topic).unwrap();
+        let reader_id = reader.inner;
+        reader.inner = 0;
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = reader.guid();
+        }));
+
+        reader.inner = reader_id;
+        assert!(result.is_err());
     }
 }
