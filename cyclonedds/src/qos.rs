@@ -699,6 +699,31 @@ impl QoS {
 mod tests {
     use super::*;
 
+    #[allow(unsafe_code)]
+    fn octetseq_as_slice(seq: &cyclonedds_sys::ddsi_octetseq) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(seq.value.cast_const(), seq.length as usize) }
+    }
+
+    #[allow(unsafe_code)]
+    fn partition_as_vec(partition: &cyclonedds_sys::ddsi_stringseq) -> Vec<String> {
+        unsafe { std::slice::from_raw_parts(partition.strs.cast_const(), partition.n as usize) }
+            .iter()
+            .map(|partition| {
+                unsafe { std::ffi::CStr::from_ptr((*partition).cast_const()) }
+                    .to_str()
+                    .expect("partition name is valid UTF-8")
+                    .to_string()
+            })
+            .collect()
+    }
+
+    #[allow(unsafe_code)]
+    fn c_string_as_str(value: *const std::ffi::c_char) -> &'static str {
+        unsafe { std::ffi::CStr::from_ptr(value) }
+            .to_str()
+            .expect("C string is valid UTF-8")
+    }
+
     #[test]
     fn test_qos_set() {
         let user_data = policy::UserData {
@@ -817,28 +842,37 @@ mod tests {
     #[test]
     fn test_qos_set_user_data() {
         let user_data = policy::UserData {
-            value: Vec::default(),
+            value: b"user-data".to_vec(),
         };
         let qos = QoS::new().with_user_data(user_data.clone());
-        assert_eq!(qos.user_data, Some(user_data));
+        assert_eq!(qos.user_data, Some(user_data.clone()));
+        assert_eq!(octetseq_as_slice(&qos.as_ffi().user_data), user_data.value);
     }
 
     #[test]
     fn test_qos_set_topic_data() {
         let topic_data = policy::TopicData {
-            value: Vec::default(),
+            value: b"topic-data".to_vec(),
         };
         let qos = QoS::new().with_topic_data(topic_data.clone());
-        assert_eq!(qos.topic_data, Some(topic_data));
+        assert_eq!(qos.topic_data, Some(topic_data.clone()));
+        assert_eq!(
+            octetseq_as_slice(&qos.as_ffi().topic_data),
+            topic_data.value
+        );
     }
 
     #[test]
     fn test_qos_set_group_data() {
         let group_data = policy::GroupData {
-            value: Vec::default(),
+            value: b"group-data".to_vec(),
         };
         let qos = QoS::new().with_group_data(group_data.clone());
-        assert_eq!(qos.group_data, Some(group_data));
+        assert_eq!(qos.group_data, Some(group_data.clone()));
+        assert_eq!(
+            octetseq_as_slice(&qos.as_ffi().group_data),
+            group_data.value
+        );
     }
 
     #[test]
@@ -846,15 +880,31 @@ mod tests {
         let durability = policy::Durability::Volatile;
         let qos = QoS::new().with_durability(durability);
         assert_eq!(qos.durability, Some(durability));
+        assert_eq!(
+            qos.as_ffi().durability.kind,
+            cyclonedds_sys::dds_durability_kind_DDS_DURABILITY_VOLATILE
+        );
         let durability = policy::Durability::TransientLocal;
         let qos = QoS::new().with_durability(durability);
         assert_eq!(qos.durability, Some(durability));
+        assert_eq!(
+            qos.as_ffi().durability.kind,
+            cyclonedds_sys::dds_durability_kind_DDS_DURABILITY_TRANSIENT_LOCAL
+        );
         let durability = policy::Durability::Transient;
         let qos = QoS::new().with_durability(durability);
         assert_eq!(qos.durability, Some(durability));
+        assert_eq!(
+            qos.as_ffi().durability.kind,
+            cyclonedds_sys::dds_durability_kind_DDS_DURABILITY_TRANSIENT
+        );
         let durability = policy::Durability::Persistent;
         let qos = QoS::new().with_durability(durability);
         assert_eq!(qos.durability, Some(durability));
+        assert_eq!(
+            qos.as_ffi().durability.kind,
+            cyclonedds_sys::dds_durability_kind_DDS_DURABILITY_PERSISTENT
+        );
     }
 
     #[test]
@@ -870,6 +920,25 @@ mod tests {
         };
         let qos = QoS::new().with_durability_service(durability_service);
         assert_eq!(qos.durability_service, Some(durability_service));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.durability_service.service_cleanup_delay,
+            crate::Duration::INFINITE.inner
+        );
+        assert_eq!(
+            ffi_qos.durability_service.history.kind,
+            cyclonedds_sys::dds_history_kind_DDS_HISTORY_KEEP_ALL
+        );
+        assert_eq!(ffi_qos.durability_service.history.depth, 0);
+        assert_eq!(ffi_qos.durability_service.resource_limits.max_samples, 1);
+        assert_eq!(ffi_qos.durability_service.resource_limits.max_instances, 1);
+        assert_eq!(
+            ffi_qos
+                .durability_service
+                .resource_limits
+                .max_samples_per_instance,
+            1
+        );
     }
 
     #[test]
@@ -883,6 +952,13 @@ mod tests {
         };
         let qos = QoS::new().with_presentation(presentation);
         assert_eq!(qos.presentation, Some(presentation));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.presentation.access_scope,
+            cyclonedds_sys::dds_presentation_access_scope_kind_DDS_PRESENTATION_INSTANCE
+        );
+        assert_eq!(ffi_qos.presentation.coherent_access, 1);
+        assert_eq!(ffi_qos.presentation.ordered_access, 1);
 
         let presentation = policy::Presentation::Topic {
             coherent_access,
@@ -890,6 +966,13 @@ mod tests {
         };
         let qos = QoS::new().with_presentation(presentation);
         assert_eq!(qos.presentation, Some(presentation));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.presentation.access_scope,
+            cyclonedds_sys::dds_presentation_access_scope_kind_DDS_PRESENTATION_TOPIC
+        );
+        assert_eq!(ffi_qos.presentation.coherent_access, 1);
+        assert_eq!(ffi_qos.presentation.ordered_access, 1);
 
         let presentation = policy::Presentation::Group {
             coherent_access,
@@ -897,6 +980,13 @@ mod tests {
         };
         let qos = QoS::new().with_presentation(presentation);
         assert_eq!(qos.presentation, Some(presentation));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.presentation.access_scope,
+            cyclonedds_sys::dds_presentation_access_scope_kind_DDS_PRESENTATION_GROUP
+        );
+        assert_eq!(ffi_qos.presentation.coherent_access, 1);
+        assert_eq!(ffi_qos.presentation.ordered_access, 1);
     }
 
     #[test]
@@ -906,6 +996,10 @@ mod tests {
         };
         let qos = QoS::new().with_deadline(deadline);
         assert_eq!(qos.deadline, Some(deadline));
+        assert_eq!(
+            qos.as_ffi().deadline.deadline,
+            crate::Duration::INFINITE.inner
+        );
     }
 
     #[test]
@@ -915,6 +1009,10 @@ mod tests {
         };
         let qos = QoS::new().with_latency_budget(latency_budget);
         assert_eq!(qos.latency_budget, Some(latency_budget));
+        assert_eq!(
+            qos.as_ffi().latency_budget.duration,
+            crate::Duration::INFINITE.inner
+        );
     }
 
     #[test]
@@ -922,10 +1020,20 @@ mod tests {
         let ownership = policy::Ownership::Shared;
         let qos = QoS::new().with_ownership(ownership);
         assert_eq!(qos.ownership, Some(ownership));
+        assert_eq!(
+            qos.as_ffi().ownership.kind,
+            cyclonedds_sys::dds_ownership_kind_DDS_OWNERSHIP_SHARED
+        );
 
         let ownership = policy::Ownership::Exclusive { strength: 1 };
         let qos = QoS::new().with_ownership(ownership);
         assert_eq!(qos.ownership, Some(ownership));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.ownership.kind,
+            cyclonedds_sys::dds_ownership_kind_DDS_OWNERSHIP_EXCLUSIVE
+        );
+        assert_eq!(ffi_qos.ownership_strength.value, 1);
     }
 
     #[test]
@@ -935,14 +1043,32 @@ mod tests {
         let liveliness = policy::Liveliness::Automatic { lease_duration };
         let qos = QoS::new().with_liveliness(liveliness);
         assert_eq!(qos.liveliness, Some(liveliness));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.liveliness.kind,
+            cyclonedds_sys::dds_liveliness_kind_DDS_LIVELINESS_AUTOMATIC
+        );
+        assert_eq!(ffi_qos.liveliness.lease_duration, lease_duration.inner);
 
         let liveliness = policy::Liveliness::ManualByParticipant { lease_duration };
         let qos = QoS::new().with_liveliness(liveliness);
         assert_eq!(qos.liveliness, Some(liveliness));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.liveliness.kind,
+            cyclonedds_sys::dds_liveliness_kind_DDS_LIVELINESS_MANUAL_BY_PARTICIPANT
+        );
+        assert_eq!(ffi_qos.liveliness.lease_duration, lease_duration.inner);
 
         let liveliness = policy::Liveliness::ManualByTopic { lease_duration };
         let qos = QoS::new().with_liveliness(liveliness);
         assert_eq!(qos.liveliness, Some(liveliness));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.liveliness.kind,
+            cyclonedds_sys::dds_liveliness_kind_DDS_LIVELINESS_MANUAL_BY_TOPIC
+        );
+        assert_eq!(ffi_qos.liveliness.lease_duration, lease_duration.inner);
     }
 
     #[test]
@@ -952,6 +1078,10 @@ mod tests {
         };
         let qos = QoS::new().with_time_based_filter(time_based_filter);
         assert_eq!(qos.time_based_filter, Some(time_based_filter));
+        assert_eq!(
+            qos.as_ffi().time_based_filter.minimum_separation,
+            crate::Duration::from_nanos(1000).inner
+        );
     }
 
     #[test]
@@ -960,7 +1090,11 @@ mod tests {
             partitions: vec!["A".to_string(), "B".to_string()],
         };
         let qos = QoS::new().with_partition(partition.clone());
-        assert_eq!(qos.partition, Some(partition));
+        assert_eq!(qos.partition, Some(partition.clone()));
+        assert_eq!(
+            partition_as_vec(&qos.as_ffi().partition),
+            partition.partitions
+        );
     }
 
     #[test]
@@ -978,12 +1112,27 @@ mod tests {
         let reliability = policy::Reliability::BestEffort;
         let qos = QoS::new().with_reliability(reliability);
         assert_eq!(qos.reliability, Some(reliability));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.reliability.kind,
+            cyclonedds_sys::dds_reliability_kind_DDS_RELIABILITY_BEST_EFFORT
+        );
+        assert_eq!(ffi_qos.reliability.max_blocking_time, 0);
 
         let reliability = policy::Reliability::Reliable {
             max_blocking_time: crate::Duration::INFINITE,
         };
         let qos = QoS::new().with_reliability(reliability);
         assert_eq!(qos.reliability, Some(reliability));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.reliability.kind,
+            cyclonedds_sys::dds_reliability_kind_DDS_RELIABILITY_RELIABLE
+        );
+        assert_eq!(
+            ffi_qos.reliability.max_blocking_time,
+            crate::Duration::INFINITE.inner
+        );
     }
 
     #[test]
@@ -991,6 +1140,7 @@ mod tests {
         let transport_priority = policy::TransportPriority { priority: 1 };
         let qos = QoS::new().with_transport_priority(transport_priority);
         assert_eq!(qos.transport_priority, Some(transport_priority));
+        assert_eq!(qos.as_ffi().transport_priority.value, 1);
     }
 
     #[test]
@@ -1000,6 +1150,10 @@ mod tests {
         };
         let qos = QoS::new().with_lifespan(lifespan);
         assert_eq!(qos.lifespan, Some(lifespan));
+        assert_eq!(
+            qos.as_ffi().lifespan.duration,
+            crate::Duration::INFINITE.inner
+        );
     }
 
     #[test]
@@ -1007,10 +1161,18 @@ mod tests {
         let destination_order = policy::DestinationOrder::ByReceptionTimestamp;
         let qos = QoS::new().with_destination_order(destination_order);
         assert_eq!(qos.destination_order, Some(destination_order));
+        assert_eq!(
+            qos.as_ffi().destination_order.kind,
+            cyclonedds_sys::dds_destination_order_kind_DDS_DESTINATIONORDER_BY_RECEPTION_TIMESTAMP
+        );
 
         let destination_order = policy::DestinationOrder::BySourceTimestamp;
         let qos = QoS::new().with_destination_order(destination_order);
         assert_eq!(qos.destination_order, Some(destination_order));
+        assert_eq!(
+            qos.as_ffi().destination_order.kind,
+            cyclonedds_sys::dds_destination_order_kind_DDS_DESTINATIONORDER_BY_SOURCE_TIMESTAMP
+        );
     }
 
     #[test]
@@ -1018,10 +1180,22 @@ mod tests {
         let history = policy::History::KeepAll;
         let qos = QoS::new().with_history(history);
         assert_eq!(qos.history, Some(history));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.history.kind,
+            cyclonedds_sys::dds_history_kind_DDS_HISTORY_KEEP_ALL
+        );
+        assert_eq!(ffi_qos.history.depth, 0);
 
         let history = policy::History::KeepLast { depth: 10 };
         let qos = QoS::new().with_history(history);
         assert_eq!(qos.history, Some(history));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos.history.kind,
+            cyclonedds_sys::dds_history_kind_DDS_HISTORY_KEEP_LAST
+        );
+        assert_eq!(ffi_qos.history.depth, 10);
     }
 
     #[test]
@@ -1033,6 +1207,10 @@ mod tests {
         };
         let qos = QoS::new().with_resource_limits(resource_limits);
         assert_eq!(qos.resource_limits, Some(resource_limits));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(ffi_qos.resource_limits.max_samples, 1);
+        assert_eq!(ffi_qos.resource_limits.max_instances, 1);
+        assert_eq!(ffi_qos.resource_limits.max_samples_per_instance, 1);
     }
 
     #[test]
@@ -1042,6 +1220,14 @@ mod tests {
         };
         let qos = QoS::new().with_entity_factory(entity_factory);
         assert_eq!(qos.entity_factory, Some(entity_factory));
+        assert_eq!(qos.as_ffi().entity_factory.autoenable_created_entities, 1);
+
+        let entity_factory = policy::EntityFactory {
+            autoenable_created_entities: false,
+        };
+        let qos = QoS::new().with_entity_factory(entity_factory);
+        assert_eq!(qos.entity_factory, Some(entity_factory));
+        assert_eq!(qos.as_ffi().entity_factory.autoenable_created_entities, 0);
     }
 
     #[test]
@@ -1051,6 +1237,12 @@ mod tests {
         };
         let qos = QoS::new().with_writer_data_lifecycle(writer_data_lifecycle);
         assert_eq!(qos.writer_data_lifecycle, Some(writer_data_lifecycle));
+        assert_eq!(
+            qos.as_ffi()
+                .writer_data_lifecycle
+                .autodispose_unregistered_instances,
+            1
+        );
     }
 
     #[test]
@@ -1061,6 +1253,19 @@ mod tests {
         };
         let qos = QoS::new().with_reader_data_lifecycle(reader_data_lifecycle);
         assert_eq!(qos.reader_data_lifecycle, Some(reader_data_lifecycle));
+        let ffi_qos = qos.as_ffi();
+        assert_eq!(
+            ffi_qos
+                .reader_data_lifecycle
+                .autopurge_nowriter_samples_delay,
+            crate::Duration::from_nanos(10_000).inner
+        );
+        assert_eq!(
+            ffi_qos
+                .reader_data_lifecycle
+                .autopurge_disposed_samples_delay,
+            crate::Duration::from_nanos(10_000).inner
+        );
     }
 
     #[test]
@@ -1069,7 +1274,11 @@ mod tests {
             name: "my_entity".to_string(),
         };
         let qos = QoS::new().with_entity_name(entity_name.clone());
-        assert_eq!(qos.entity_name, Some(entity_name));
+        assert_eq!(qos.entity_name, Some(entity_name.clone()));
+        assert_eq!(
+            c_string_as_str(qos.as_ffi().entity_name.cast_const()),
+            entity_name.name
+        );
     }
 
     #[test]
