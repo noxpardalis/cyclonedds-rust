@@ -5,6 +5,8 @@
 
 #![allow(unsafe_code)]
 
+pub mod builtin;
+mod from_ffi;
 mod listener;
 pub mod serdata_ops;
 pub mod sertype_ops;
@@ -21,6 +23,7 @@ pub use listener::{
 
 use crate::Result;
 use crate::error::IntoError;
+pub(crate) use from_ffi::FromFfi;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum InternalSample<'a, T>

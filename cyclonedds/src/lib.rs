@@ -168,6 +168,7 @@
     )
 )]
 
+pub mod builtin;
 pub mod cdr_bounds;
 mod domain;
 mod duration;
@@ -220,6 +221,7 @@ pub mod builder {
     //!
     //! Each builder is also accessible via the `builder` associated function on
     //! its corresponding entity type.
+    pub use crate::builtin::private::BuiltInTopicReaderBuilder;
     pub use crate::participant::ParticipantBuilder;
     pub use crate::publisher::PublisherBuilder;
     pub use crate::reader::ReaderBuilder;

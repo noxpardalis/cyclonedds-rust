@@ -33,6 +33,19 @@ static void ddsi_serdata_unref_bindgen_wrapper(struct ddsi_serdata* serdata) {
   ddsi_serdata_unref(serdata);
 }
 
+/// Converts a `ddsi_serdata` object into a sample.
+static bool ddsi_serdata_to_sample_bindgen_wrapper(
+    const struct ddsi_serdata* serdata, void* sample, void** bufptr,
+    void* buflim) {
+  return ddsi_serdata_to_sample(serdata, sample, bufptr, buflim);
+}
+
+/// Frees a single sample for a `ddsi_sertype`.
+static void ddsi_sertype_free_sample_bindgen_wrapper(
+    const struct ddsi_sertype* sertype, void* sample, dds_free_op_t op) {
+  ddsi_sertype_free_sample(sertype, sample, op);
+}
+
 /// The value that represents the default domain ID.
 static const dds_domainid_t DOMAIN_DEFAULT = DDS_DOMAIN_DEFAULT;
 /// The value that represents an infinite duration.

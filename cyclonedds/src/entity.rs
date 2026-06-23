@@ -19,6 +19,14 @@ pub struct InstanceHandle {
     pub(crate) inner: cyclonedds_sys::dds_instance_handle_t,
 }
 
+impl std::default::Default for InstanceHandle {
+    fn default() -> Self {
+        Self {
+            inner: cyclonedds_sys::dds_instance_handle_t::from(cyclonedds_sys::DDS_HANDLE_NIL),
+        }
+    }
+}
+
 /// A local opaque handle for an entity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct EntityHandle {
@@ -31,6 +39,12 @@ pub struct EntityHandle {
 /// same prefix.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct GuidPrefix(pub(crate) [u8; 12]);
+
+impl std::default::Default for GuidPrefix {
+    fn default() -> Self {
+        Self::UNKNOWN
+    }
+}
 
 impl GuidPrefix {
     /// The unknown GUID prefix.
@@ -45,6 +59,12 @@ impl GuidPrefix {
 /// The entity-id portion of a [`Guid`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct EntityId(u32);
+
+impl std::default::Default for EntityId {
+    fn default() -> Self {
+        Self::UNKNOWN
+    }
+}
 
 impl EntityId {
     /// An unknown GUID entity id.
@@ -456,6 +476,7 @@ impl_entity!(crate::ReadCondition<'_, '_, '_, '_, T> where T: crate::Topicable);
 impl_entity!(crate::QueryCondition<'_, '_, '_, '_, T, F> where T: crate::Topicable, F: Fn(&T) -> bool);
 impl_entity!(crate::GuardCondition<'_>);
 impl_entity!(crate::WaitSet<'_, '_, '_, A> where A);
+impl_entity!(crate::builtin::BuiltInTopicReader<'_, '_, T> where T: crate::builtin::private::BuiltInTopicType);
 
 #[cfg(test)]
 mod tests {

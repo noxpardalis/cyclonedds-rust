@@ -14,12 +14,10 @@
 //! [`ReadCondition`](crate::ReadCondition) and
 //! [`QueryCondition`](crate::QueryCondition).
 
-use crate::Topicable;
-
 #[derive(Clone, Debug)]
 pub(crate) enum SampleOrKeyInner<T>
 where
-    T: crate::Topicable,
+    T: Sample,
 {
     Sample {
         sample: Box<T>,
@@ -33,7 +31,7 @@ where
 
 impl<T> SampleOrKeyInner<T>
 where
-    T: crate::Topicable,
+    T: Sample,
 {
     pub fn new_sample(sample: T) -> Self {
         Self::Sample {
@@ -70,6 +68,41 @@ where
     }
 }
 
+pub(crate) mod sealed {
+    pub trait Sealed {}
+}
+
+/// Trait implemented by types that can be represented as received samples.
+pub trait Sample: sealed::Sealed {
+    /// Key type for this sample.
+    type Key;
+
+    /// Constructs a default instance of `Self` from a key.
+    ///
+    /// Used to materialize a full sample from a key-only notification. Fields
+    /// not part of the key should be set to their default values.
+    fn from_key(key: &Self::Key) -> Self;
+
+    /// Extracts the key from this instance.
+    fn as_key(&self) -> Self::Key;
+}
+
+impl<T> sealed::Sealed for T where T: crate::Topicable {}
+
+impl<T> Sample for T
+where
+    T: crate::Topicable,
+{
+    type Key = <Self as crate::Topicable>::Key;
+    fn from_key(key: &Self::Key) -> Self {
+        <Self as crate::Topicable>::from_key(key)
+    }
+
+    fn as_key(&self) -> Self::Key {
+        <Self as crate::Topicable>::as_key(self)
+    }
+}
+
 /// A received sample, which is either a full payload of type
 /// [`T`](crate::Topicable) or a key-only payload carrying
 /// [`T::Key`](crate::Topicable::Key).
@@ -77,13 +110,13 @@ where
 /// Key-only samples are produced when an instance is disposed or unregistered
 /// by a writer. [`SampleOrKey`] derefs to `T` in both cases: for key-only
 /// samples this materializes a default `T` from the key via
-/// [`Topicable::from_key`].
+/// [`Topicable::from_key`](crate::Topicable::from_key).
 ///
 /// Use [`view`](SampleOrKey::view) to distinguish between the two cases without
 /// triggering materialisation.
 pub struct SampleOrKey<T>
 where
-    T: crate::Topicable,
+    T: Sample,
 {
     inner: SampleOrKeyInner<T>,
     pub(crate) info: Info,
@@ -91,7 +124,7 @@ where
 
 impl<T> std::clone::Clone for SampleOrKey<T>
 where
-    T: Topicable + std::clone::Clone,
+    T: Sample + std::clone::Clone,
     T::Key: std::clone::Clone,
 {
     fn clone(&self) -> Self {
@@ -104,7 +137,7 @@ where
 
 impl<T> std::fmt::Debug for SampleOrKey<T>
 where
-    T: Topicable + std::fmt::Debug,
+    T: Sample + std::fmt::Debug,
     T::Key: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -121,7 +154,7 @@ where
 
 impl<T> SampleOrKey<T>
 where
-    T: crate::Topicable,
+    T: Sample,
 {
     /// Create a new sample or key provided a full sample and sample info.
     pub(crate) fn new_sample(sample: T, info: Info) -> Self {
@@ -443,7 +476,7 @@ where
 
 impl<T> std::ops::Deref for SampleOrKey<T>
 where
-    T: crate::Topicable,
+    T: Sample,
 {
     type Target = T;
 
@@ -484,7 +517,7 @@ where
 /// ```
 pub enum View<'sample, T>
 where
-    T: Topicable,
+    T: Sample,
 {
     /// A full data sample.
     Sample(&'sample T),
@@ -495,7 +528,7 @@ where
 
 impl<T> std::fmt::Debug for View<'_, T>
 where
-    T: Topicable,
+    T: Sample + std::fmt::Debug,
     T::Key: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -508,7 +541,7 @@ where
 
 impl<T> std::cmp::PartialEq for View<'_, T>
 where
-    T: Topicable + std::cmp::PartialEq,
+    T: Sample + std::cmp::PartialEq,
     T::Key: std::cmp::PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
