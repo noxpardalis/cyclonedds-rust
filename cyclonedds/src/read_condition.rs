@@ -1,13 +1,15 @@
 use crate::internal::ffi;
-use crate::{Reader, Result, State};
+use crate::{Result, SampleReader, State};
 
-/// A filter on a [`Reader`](crate::Reader) that restricts samples by their
-/// [`State`](crate::State).
+type ReadFn<T> = fn(cyclonedds_sys::dds_entity_t) -> Result<Vec<crate::sample::SampleOrKey<T>>>;
+
+/// A filter on a reader that restricts samples by their [`State`](crate::State).
 ///
-/// A `ReadCondition` is created against a reader with a state mask and can be
-/// attached to a [`WaitSet`](crate::WaitSet) to trigger when matching samples
-/// become available. Reading via the condition returns only samples whose
-/// combined sample, view, and instance state matches the mask.
+/// A `ReadCondition` is created against a [`Reader`](crate::Reader) or
+/// [`BuiltInTopicReader`](crate::builtin::BuiltInTopicReader) with a state mask
+/// and can be attached to a [`WaitSet`](crate::WaitSet) to trigger when
+/// matching samples become available. Reading via the condition returns only
+/// samples whose combined sample, view, and instance state matches the mask.
 ///
 /// # Examples
 ///
@@ -38,18 +40,31 @@ use crate::{Reader, Result, State};
 /// let samples = condition.take()?;
 /// # Ok::<_, cyclonedds::Error>(())
 /// ```
-#[derive(Debug)]
 pub struct ReadCondition<'domain, 'participant, 'topic, 'reader, T>
 where
-    T: crate::Topicable,
+    T: crate::sample::Sample,
 {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
-    phantom: std::marker::PhantomData<&'reader Reader<'domain, 'participant, 'topic, T>>,
+    take: ReadFn<T>,
+    read: ReadFn<T>,
+    peek: ReadFn<T>,
+    phantom: std::marker::PhantomData<(&'domain (), &'participant (), &'topic (), &'reader T)>,
 }
 
-impl<'d, 'p, 't, 'r, T> ReadCondition<'d, 'p, 't, 'r, T>
+impl<T> std::fmt::Debug for ReadCondition<'_, '_, '_, '_, T>
 where
-    T: crate::Topicable,
+    T: crate::sample::Sample,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ReadCondition")
+            .field("inner", &self.inner)
+            .finish()
+    }
+}
+
+impl<'r, T> ReadCondition<'_, '_, '_, 'r, T>
+where
+    T: crate::sample::Sample,
 {
     /// Creates a new [`ReadCondition`] on `reader` that matches samples whose
     /// state satisfies `mask`.
@@ -79,10 +94,16 @@ where
     /// let condition = ReadCondition::new(&reader, state::sample::Fresh)?;
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
-    pub fn new(reader: &'r Reader<'d, 'p, 't, T>, mask: State) -> Result<Self> {
-        let inner = ffi::dds_create_readcondition(reader.inner, mask.bits())?;
+    pub fn new<R>(reader: &'r R, mask: State) -> Result<Self>
+    where
+        R: SampleReader<T>,
+    {
+        let inner = ffi::dds_create_readcondition(reader.sample_reader_entity(), mask.bits())?;
         Ok(Self {
             inner,
+            take: R::take_from_entity,
+            read: R::read_from_entity,
+            peek: R::peek_from_entity,
             phantom: std::marker::PhantomData,
         })
     }
@@ -206,11 +227,8 @@ where
     /// assert_eq!(condition.take()?.len(), 0);
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
-    pub fn take(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
-    where
-        T: std::clone::Clone,
-    {
-        ffi::dds_take(self.inner)
+    pub fn take(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        (self.take)(self.inner)
     }
 
     /// Returns all samples matching this condition's mask without removing
@@ -261,11 +279,8 @@ where
     /// assert_eq!(condition.read()?.len(), 1);
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
-    pub fn read(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
-    where
-        T: std::clone::Clone,
-    {
-        ffi::dds_read(self.inner)
+    pub fn read(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        (self.read)(self.inner)
     }
 
     /// Returns all samples matching this condition's mask without marking them
@@ -316,17 +331,14 @@ where
     /// assert_eq!(condition.peek()?.len(), 1);
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
-    pub fn peek(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
-    where
-        T: std::clone::Clone,
-    {
-        ffi::dds_peek(self.inner)
+    pub fn peek(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        (self.peek)(self.inner)
     }
 }
 
 impl<T> Drop for ReadCondition<'_, '_, '_, '_, T>
 where
-    T: crate::Topicable,
+    T: crate::sample::Sample,
 {
     fn drop(&mut self) {
         let result = ffi::dds_delete(self.inner);

@@ -2,15 +2,20 @@ use ffi::Filter;
 
 use crate::internal::ffi;
 use crate::state::State;
-use crate::{Reader, Result};
+use crate::{Result, SampleReader};
 
-/// A filter on a [`Reader`](crate::Reader) that restricts samples by their
-/// [`State`](crate::State) and a predicate.
+type ReadFn<T> = fn(cyclonedds_sys::dds_entity_t) -> Result<Vec<crate::sample::SampleOrKey<T>>>;
+
+/// A filter on a reader that restricts samples by their [`State`](crate::State)
+/// and a predicate.
 ///
 /// A `QueryCondition` extends [`ReadCondition`](crate::ReadCondition) with a
 /// user-supplied predicate `F` that is applied to each sample's payload. Only
 /// samples that both match the state mask and satisfy the predicate are
 /// returned by reads and trigger waitset wakeups.
+///
+/// Query conditions can be created for both [`Reader`](crate::Reader) and
+/// [`BuiltInTopicReader`](crate::builtin::BuiltInTopicReader) values.
 ///
 /// # Predicate requirements
 /// The predicate closure provided to the [`QueryCondition`] must be
@@ -114,17 +119,20 @@ use crate::{Reader, Result};
 /// </details>
 pub struct QueryCondition<'domain, 'participant, 'topic, 'reader, T, F>
 where
-    T: crate::Topicable,
+    T: crate::sample::Sample,
     F: Fn(&T) -> bool,
 {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
+    take: ReadFn<T>,
+    read: ReadFn<T>,
+    peek: ReadFn<T>,
     phantom_callback: std::marker::PhantomData<F>,
-    phantom: std::marker::PhantomData<&'reader Reader<'topic, 'domain, 'participant, T>>,
+    phantom: std::marker::PhantomData<(&'domain (), &'participant (), &'topic (), &'reader T)>,
 }
 
 impl<T, F> std::fmt::Debug for QueryCondition<'_, '_, '_, '_, T, F>
 where
-    T: crate::Topicable,
+    T: crate::sample::Sample,
     F: Fn(&T) -> bool,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -137,14 +145,14 @@ where
 
 impl<T, F> Filter<T, F> for QueryCondition<'_, '_, '_, '_, T, F>
 where
-    T: crate::Topicable + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+    T: crate::sample::Sample + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
     F: Fn(&T) -> bool,
 {
 }
 
-impl<'d, 'p, 't, 'r, T, F> QueryCondition<'d, 'p, 't, 'r, T, F>
+impl<'r, T, F> QueryCondition<'_, '_, '_, 'r, T, F>
 where
-    T: crate::Topicable + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+    T: crate::sample::Sample + std::panic::UnwindSafe + std::panic::RefUnwindSafe,
     F: Fn(&T) -> bool,
 {
     /// Creates a new `QueryCondition` on `reader` that matches samples whose
@@ -181,11 +189,17 @@ where
     ///     QueryCondition::new(&reader, state::sample::Fresh, |sample: &Data| sample.x > 10)?;
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
-    pub fn new(reader: &'r Reader<'d, 'p, 't, T>, mask: State, _: F) -> Result<Self> {
+    pub fn new<R>(reader: &'r R, mask: State, _: F) -> Result<Self>
+    where
+        R: SampleReader<T>,
+    {
         let _ = Self::IS_PROVIDED_CALLBACK_ZERO_SIZED;
-        let inner = ffi::dds_create_querycondition::<T, F, Self>(reader.inner, mask.bits())?;
+        let inner = R::create_query_condition::<F, Self>(reader.sample_reader_entity(), mask)?;
         Ok(Self {
             inner,
+            take: R::take_from_entity,
+            read: R::read_from_entity,
+            peek: R::peek_from_entity,
             phantom_callback: std::marker::PhantomData,
             phantom: std::marker::PhantomData,
         })
@@ -314,11 +328,8 @@ where
     /// assert_eq!(condition.take()?.len(), 0);
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
-    pub fn take(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
-    where
-        T: std::clone::Clone,
-    {
-        ffi::dds_take(self.inner)
+    pub fn take(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        (self.take)(self.inner)
     }
 
     /// Returns all samples matching this condition's mask and predicate without
@@ -369,11 +380,8 @@ where
     /// assert_eq!(condition.read()?.len(), 2);
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
-    pub fn read(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
-    where
-        T: std::clone::Clone,
-    {
-        ffi::dds_read(self.inner)
+    pub fn read(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        (self.read)(self.inner)
     }
 
     /// Returns all samples matching this condition's mask and predicate without
@@ -424,17 +432,14 @@ where
     /// assert_eq!(condition.peek()?.len(), 2);
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```
-    pub fn peek(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>>
-    where
-        T: std::clone::Clone,
-    {
-        ffi::dds_peek(self.inner)
+    pub fn peek(&self) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        (self.peek)(self.inner)
     }
 }
 
 impl<T, F> Drop for QueryCondition<'_, '_, '_, '_, T, F>
 where
-    T: crate::Topicable,
+    T: crate::sample::Sample,
     F: Fn(&T) -> bool,
 {
     fn drop(&mut self) {
@@ -454,6 +459,20 @@ mod tests {
     fn query(data: &crate::tests::topic::Data) -> bool {
         assert_eq!(data.x, 101);
         true
+    }
+
+    #[allow(dead_code)]
+    fn compile_builtin_query_condition<'d, 'p>(
+        participant: &'p crate::Participant<'d>,
+    ) -> crate::Result<()> {
+        let reader = crate::builtin::DcpsTopicReader::new(participant)?;
+        let condition = QueryCondition::new(
+            &reader,
+            state::sample::Any | state::instance::Any | state::view::Any,
+            |topic: &crate::builtin::DcpsTopic| !topic.topic_name.is_empty(),
+        )?;
+        let _: Vec<crate::sample::SampleOrKey<crate::builtin::DcpsTopic>> = condition.take()?;
+        Ok(())
     }
 
     #[test]

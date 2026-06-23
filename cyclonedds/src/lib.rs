@@ -168,6 +168,7 @@
     )
 )]
 
+pub mod builtin;
 pub mod cdr_bounds;
 mod domain;
 mod duration;
@@ -204,7 +205,7 @@ pub use publisher::Publisher;
 pub use qos::QoS;
 pub use query_condition::QueryCondition;
 pub use read_condition::ReadCondition;
-pub use reader::Reader;
+pub use reader::{Reader, SampleReader};
 pub use state::State;
 pub use status::bitflags::Status;
 pub use subscriber::Subscriber;
@@ -220,6 +221,7 @@ pub mod builder {
     //!
     //! Each builder is also accessible via the `builder` associated function on
     //! its corresponding entity type.
+    pub use crate::builtin::private::BuiltInTopicReaderBuilder;
     pub use crate::participant::ParticipantBuilder;
     pub use crate::publisher::PublisherBuilder;
     pub use crate::reader::ReaderBuilder;

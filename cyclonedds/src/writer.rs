@@ -1027,7 +1027,7 @@ where
     ///
     /// ```
     /// use cyclonedds::entity::Entity;
-    /// use cyclonedds::{Topic, Writer};
+    /// use cyclonedds::{Topic, Writer, Reader};
     ///
     /// # #[derive(
     /// #     cyclonedds::Topicable, serde::Serialize, serde::Deserialize, Clone, Debug, Default,
@@ -1039,13 +1039,14 @@ where
     /// # let participant = cyclonedds::Participant::new(&domain)?;
     /// let topic = Topic::<Data>::new(&participant, "Example")?;
     /// let writer = Writer::new(&topic)?;
+    /// let reader = Reader::new(&topic)?;
     ///
-    /// // The writer and the topic have distinct GUIDs.
-    /// assert_ne!(writer.guid(), topic.guid());
+    /// // The writer and the reader have distinct GUIDs.
+    /// assert_ne!(writer.guid(), reader.guid());
     ///
-    /// // The writer and the topic share the same participant so their GUID
+    /// // The writer and the reader share the same participant so their GUID
     /// // prefixes are the same.
-    /// assert_eq!(writer.guid().prefix(), topic.guid().prefix());
+    /// assert_eq!(writer.guid().prefix(), reader.guid().prefix());
     ///
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```

@@ -3,6 +3,56 @@ use crate::internal::ffi;
 use crate::internal::traits::AsFfi;
 use crate::{Result, Subscriber, Topic};
 
+mod private {
+    pub trait SampleReaderSealed {}
+}
+
+/// A DDS reader entity that can provide samples of type `T`.
+///
+/// This trait is sealed and implemented by [`Reader`] and
+/// [`BuiltInTopicReader`](crate::builtin::BuiltInTopicReader). It exists so
+/// read and query conditions can be created for both regular topic readers and
+/// built-in topic readers.
+pub trait SampleReader<T>: private::SampleReaderSealed
+where
+    T: crate::sample::Sample,
+{
+    #[doc(hidden)]
+    fn sample_reader_entity(&self) -> cyclonedds_sys::dds_entity_t;
+
+    #[doc(hidden)]
+    fn take_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>>
+    where
+        Self: Sized;
+
+    #[doc(hidden)]
+    fn read_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>>
+    where
+        Self: Sized;
+
+    #[doc(hidden)]
+    fn peek_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>>
+    where
+        Self: Sized;
+
+    #[doc(hidden)]
+    fn create_query_condition<F, Callback>(
+        entity: cyclonedds_sys::dds_entity_t,
+        mask: crate::State,
+    ) -> Result<cyclonedds_sys::dds_entity_t>
+    where
+        Self: Sized,
+        T: std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+        F: Fn(&T) -> bool,
+        Callback: ffi::Filter<T, F>;
+}
+
 /// A data reader for topic type [`T`](crate::Topicable).
 ///
 /// A `Reader` receives samples of type [`T`](crate::Topicable) from a named
@@ -29,6 +79,91 @@ where
 {
     pub(crate) inner: cyclonedds_sys::dds_entity_t,
     phantom_topic: std::marker::PhantomData<&'topic Topic<'domain, 'participant, T>>,
+}
+
+impl<T> private::SampleReaderSealed for Reader<'_, '_, '_, T> where T: crate::Topicable {}
+
+impl<T> SampleReader<T> for Reader<'_, '_, '_, T>
+where
+    T: crate::Topicable,
+{
+    fn sample_reader_entity(&self) -> cyclonedds_sys::dds_entity_t {
+        self.inner
+    }
+
+    fn take_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        ffi::dds_take(entity)
+    }
+
+    fn read_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        ffi::dds_read(entity)
+    }
+
+    fn peek_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        ffi::dds_peek(entity)
+    }
+
+    fn create_query_condition<F, Callback>(
+        entity: cyclonedds_sys::dds_entity_t,
+        mask: crate::State,
+    ) -> Result<cyclonedds_sys::dds_entity_t>
+    where
+        T: std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+        F: Fn(&T) -> bool,
+        Callback: ffi::Filter<T, F>,
+    {
+        ffi::dds_create_querycondition::<T, F, Callback>(entity, mask.bits())
+    }
+}
+
+impl<T> private::SampleReaderSealed for crate::builtin::BuiltInTopicReader<'_, '_, T> where
+    T: crate::builtin::private::BuiltInTopicType
+{
+}
+
+impl<T> SampleReader<T> for crate::builtin::BuiltInTopicReader<'_, '_, T>
+where
+    T: crate::builtin::private::BuiltInTopicType,
+{
+    fn sample_reader_entity(&self) -> cyclonedds_sys::dds_entity_t {
+        self.inner
+    }
+
+    fn take_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        ffi::builtin::dds_take(entity)
+    }
+
+    fn read_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        ffi::builtin::dds_read(entity)
+    }
+
+    fn peek_from_entity(
+        entity: cyclonedds_sys::dds_entity_t,
+    ) -> Result<Vec<crate::sample::SampleOrKey<T>>> {
+        ffi::builtin::dds_peek(entity)
+    }
+
+    fn create_query_condition<F, Callback>(
+        entity: cyclonedds_sys::dds_entity_t,
+        mask: crate::State,
+    ) -> Result<cyclonedds_sys::dds_entity_t>
+    where
+        T: std::panic::UnwindSafe + std::panic::RefUnwindSafe,
+        F: Fn(&T) -> bool,
+        Callback: ffi::Filter<T, F>,
+    {
+        ffi::builtin::dds_create_querycondition::<T, F, Callback>(entity, mask.bits())
+    }
 }
 
 /// Builder for [`Reader<T>`] (accessible via [`Reader::builder`]).
@@ -601,7 +736,7 @@ where
     ///
     /// ```
     /// use cyclonedds::entity::Entity;
-    /// use cyclonedds::{Topic, Reader};
+    /// use cyclonedds::{Topic, Reader, Writer};
     ///
     /// # #[derive(
     /// #     cyclonedds::Topicable, serde::Serialize, serde::Deserialize, Clone, Debug, Default,
@@ -613,13 +748,14 @@ where
     /// # let participant = cyclonedds::Participant::new(&domain)?;
     /// let topic = Topic::<Data>::new(&participant, "Example")?;
     /// let reader = Reader::new(&topic)?;
+    /// let writer = Writer::new(&topic)?;
     ///
-    /// // The reader and the topic have distinct GUIDs.
-    /// assert_ne!(reader.guid(), topic.guid());
+    /// // The reader and the writer have distinct GUIDs.
+    /// assert_ne!(reader.guid(), writer.guid());
     ///
-    /// // The reader and the topic share the same participant so their GUID
+    /// // The reader and the writer share the same participant so their GUID
     /// // prefixes are the same.
-    /// assert_eq!(reader.guid().prefix(), topic.guid().prefix());
+    /// assert_eq!(reader.guid().prefix(), writer.guid().prefix());
     ///
     /// # Ok::<_, cyclonedds::Error>(())
     /// ```

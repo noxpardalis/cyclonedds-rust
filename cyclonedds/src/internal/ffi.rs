@@ -5,6 +5,8 @@
 
 #![allow(unsafe_code)]
 
+pub mod builtin;
+mod from_ffi;
 mod listener;
 pub mod serdata_ops;
 pub mod sertype_ops;
@@ -21,6 +23,7 @@ pub use listener::{
 
 use crate::Result;
 use crate::error::IntoError;
+pub(crate) use from_ffi::FromFfi;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum InternalSample<'a, T>
@@ -932,6 +935,7 @@ where
 
 pub trait Filter<T, F>
 where
+    T: crate::sample::Sample,
     F: Fn(&T) -> bool,
 {
     const IS_PROVIDED_CALLBACK_ZERO_SIZED: bool = {

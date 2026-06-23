@@ -290,6 +290,10 @@ fn main() -> Result<(), BuildError> {
         .allowlist_var("DOMAIN_DEFAULT")
         .allowlist_var("DURATION_INFINITE")
         .allowlist_var("TIME_NEVER")
+        .allowlist_var("BUILTIN_TOPIC_DCPS_PARTICIPANT")
+        .allowlist_var("BUILTIN_TOPIC_DCPS_TOPIC")
+        .allowlist_var("BUILTIN_TOPIC_DCPS_PUBLICATION")
+        .allowlist_var("BUILTIN_TOPIC_DCPS_SUBSCRIPTION")
         .formatter(bindgen::Formatter::Prettyplease)
         .layout_tests(true);
 

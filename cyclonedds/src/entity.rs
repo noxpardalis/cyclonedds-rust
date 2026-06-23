@@ -35,8 +35,9 @@ pub struct EntityHandle {
 
 /// The prefix portion of a [`Guid`].
 ///
-/// All entities belonging to the same [`participant`](crate::Participant) have the
-/// same prefix.
+/// [`Parcitipants`](crate::Participant), [`Readers`](crate::Reader), and
+/// [`Writers`](crate::Writer) under the same
+/// [`participant`](crate::Participant) have the same prefix.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct GuidPrefix(pub(crate) [u8; 12]);
 
@@ -147,7 +148,8 @@ mod sealed {
 ///   - [`Subscriber`](crate::Subscriber): groups [`Readers`](crate::Reader) and controls their
 ///     shared [`QoS`](crate::QoS).
 ///     - [`Reader<T>`](crate::Reader): receives samples of type `T` from a [`Topic`](crate::Topic).
-///       - [`ReadCondition<T>`](crate::ReadCondition): filters [`Reader`](crate::Reader) samples by
+///       - [`ReadCondition<T>`](crate::ReadCondition): filters [`Reader`](crate::Reader) or
+///         [`BuiltInTopicReader`](crate::builtin::BuiltInTopicReader) samples by
 ///         [`sample`](crate::state::sample), [`view`](crate::state::view), and
 ///         [`instance`](crate::state::instance) state.
 ///       - [`QueryCondition<T, F>`](crate::QueryCondition): filters [`Reader`](crate::Reader)
@@ -472,10 +474,11 @@ impl_entity!(crate::Publisher<'_, '_>);
 impl_entity!(crate::Subscriber<'_, '_>);
 impl_entity!(crate::Reader<'_, '_, '_, T> where T: crate::Topicable);
 impl_entity!(crate::Writer<'_, '_, '_, T> where T: crate::Topicable);
-impl_entity!(crate::ReadCondition<'_, '_, '_, '_, T> where T: crate::Topicable);
-impl_entity!(crate::QueryCondition<'_, '_, '_, '_, T, F> where T: crate::Topicable, F: Fn(&T) -> bool);
+impl_entity!(crate::ReadCondition<'_, '_, '_, '_, T> where T: crate::sample::Sample);
+impl_entity!(crate::QueryCondition<'_, '_, '_, '_, T, F> where T: crate::sample::Sample, F: Fn(&T) -> bool);
 impl_entity!(crate::GuardCondition<'_>);
 impl_entity!(crate::WaitSet<'_, '_, '_, A> where A);
+impl_entity!(crate::builtin::BuiltInTopicReader<'_, '_, T> where T: crate::builtin::private::BuiltInTopicType);
 
 #[cfg(test)]
 mod tests {
