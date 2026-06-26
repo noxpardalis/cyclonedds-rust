@@ -345,7 +345,7 @@ impl QoS {
     /// let qos = QoS::new().with_durability(policy::Durability::TransientLocal);
     /// ```
     #[must_use]
-    pub fn with_durability(mut self, durability: policy::Durability) -> Self {
+    pub const fn with_durability(mut self, durability: policy::Durability) -> Self {
         self.durability = Some(durability);
         self
     }
@@ -369,7 +369,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_durability_service(
+    pub const fn with_durability_service(
         mut self,
         durability_service: policy::DurabilityService,
     ) -> Self {
@@ -391,7 +391,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_presentation(mut self, presentation: policy::Presentation) -> Self {
+    pub const fn with_presentation(mut self, presentation: policy::Presentation) -> Self {
         self.presentation = Some(presentation);
         self
     }
@@ -409,7 +409,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_deadline(mut self, deadline: policy::Deadline) -> Self {
+    pub const fn with_deadline(mut self, deadline: policy::Deadline) -> Self {
         self.deadline = Some(deadline);
         self
     }
@@ -427,7 +427,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_latency_budget(mut self, latency_budget: policy::LatencyBudget) -> Self {
+    pub const fn with_latency_budget(mut self, latency_budget: policy::LatencyBudget) -> Self {
         self.latency_budget = Some(latency_budget);
         self
     }
@@ -443,7 +443,7 @@ impl QoS {
     /// let qos = QoS::new().with_ownership(policy::Ownership::Exclusive { strength: 10 });
     /// ```
     #[must_use]
-    pub fn with_ownership(mut self, ownership: policy::Ownership) -> Self {
+    pub const fn with_ownership(mut self, ownership: policy::Ownership) -> Self {
         self.ownership = Some(ownership);
         self
     }
@@ -461,7 +461,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_liveliness(mut self, liveliness: policy::Liveliness) -> Self {
+    pub const fn with_liveliness(mut self, liveliness: policy::Liveliness) -> Self {
         self.liveliness = Some(liveliness);
         self
     }
@@ -479,7 +479,10 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_time_based_filter(mut self, time_based_filter: policy::TimeBasedFilter) -> Self {
+    pub const fn with_time_based_filter(
+        mut self,
+        time_based_filter: policy::TimeBasedFilter,
+    ) -> Self {
         self.time_based_filter = Some(time_based_filter);
         self
     }
@@ -515,7 +518,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_reliability(mut self, reliability: policy::Reliability) -> Self {
+    pub const fn with_reliability(mut self, reliability: policy::Reliability) -> Self {
         self.reliability = Some(reliability);
         self
     }
@@ -531,7 +534,7 @@ impl QoS {
     /// let qos = QoS::new().with_transport_priority(policy::TransportPriority { priority: 10 });
     /// ```
     #[must_use]
-    pub fn with_transport_priority(
+    pub const fn with_transport_priority(
         mut self,
         transport_priority: policy::TransportPriority,
     ) -> Self {
@@ -552,7 +555,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_lifespan(mut self, lifespan: policy::Lifespan) -> Self {
+    pub const fn with_lifespan(mut self, lifespan: policy::Lifespan) -> Self {
         self.lifespan = Some(lifespan);
         self
     }
@@ -568,7 +571,10 @@ impl QoS {
     /// let qos = QoS::new().with_destination_order(policy::DestinationOrder::BySourceTimestamp);
     /// ```
     #[must_use]
-    pub fn with_destination_order(mut self, destination_order: policy::DestinationOrder) -> Self {
+    pub const fn with_destination_order(
+        mut self,
+        destination_order: policy::DestinationOrder,
+    ) -> Self {
         self.destination_order = Some(destination_order);
         self
     }
@@ -584,7 +590,7 @@ impl QoS {
     /// let qos = QoS::new().with_history(policy::History::KeepLast { depth: 10 });
     /// ```
     #[must_use]
-    pub fn with_history(mut self, history: policy::History) -> Self {
+    pub const fn with_history(mut self, history: policy::History) -> Self {
         self.history = Some(history);
         self
     }
@@ -604,7 +610,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_resource_limits(mut self, resource_limits: policy::ResourceLimits) -> Self {
+    pub const fn with_resource_limits(mut self, resource_limits: policy::ResourceLimits) -> Self {
         self.resource_limits = Some(resource_limits);
         self
     }
@@ -622,7 +628,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_entity_factory(mut self, entity_factory: policy::EntityFactory) -> Self {
+    pub const fn with_entity_factory(mut self, entity_factory: policy::EntityFactory) -> Self {
         self.entity_factory = Some(entity_factory);
         self
     }
@@ -640,7 +646,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_writer_data_lifecycle(
+    pub const fn with_writer_data_lifecycle(
         mut self,
         writer_data_lifecycle: policy::WriterDataLifecycle,
     ) -> Self {
@@ -662,7 +668,7 @@ impl QoS {
     /// });
     /// ```
     #[must_use]
-    pub fn with_reader_data_lifecycle(
+    pub const fn with_reader_data_lifecycle(
         mut self,
         reader_data_lifecycle: policy::ReaderDataLifecycle,
     ) -> Self {
